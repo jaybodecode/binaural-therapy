@@ -102,3 +102,19 @@ rm public/spike-audio.html SPIKE.md
 ```
 
 The M0 scaffold in `appspec.md §15` is the milestone we keep.
+
+---
+
+## RESULT — PASSED (2026-09-05)
+
+The iOS audio anchor pattern is **confirmed working** on a real iPhone at
+`https://aura.sharefront.net/spike-audio.html`:
+
+- AudioContext unlocks on user gesture (§8.6)
+- Binaural beat is audible via the `<audio>` MediaStream anchor (§8.3)
+- `navigator.audioSession.type = "playback"` bypasses silent switch (§8.2)
+- Custom domain serves the root — no subpath 404s (§7.7)
+
+**Decision → proceed to M1**: the Vue composables will wrap these exact
+patterns in the main app. This spike file can be deleted once M1
+(State Lock) ships the real engine.
