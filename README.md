@@ -47,8 +47,8 @@ The authoritative product spec and decision log live in [`appspec.md`](./appspec
 
 ## Screenshots
 
-| iPhone | iPad | Glass theme |
-| :---: | :---: | :---: |
+|                        iPhone                        |                       iPad                       |                           Glass theme                            |
+| :--------------------------------------------------: | :----------------------------------------------: | :--------------------------------------------------------------: |
 | [`screenshots/iphone.png`](./screenshots/iphone.png) | [`screenshots/ipad.png`](./screenshots/ipad.png) | [`screenshots/iphone-glass.png`](./screenshots/iphone-glass.png) |
 
 ## Credits & attribution
