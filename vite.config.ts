@@ -48,8 +48,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'Binaural Therapy',
-        short_name: 'Binaural',
+        name: 'Aura — Binaural Therapy',
+        short_name: 'Aura',
         description:
           'State-transitioning binaural beats and colored noise for sleep, relaxation, and focus.',
         theme_color: '#0b0d10',

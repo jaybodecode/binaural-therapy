@@ -4,6 +4,9 @@ import { useSessionStore } from '@/stores/session'
 import { usePresetsStore } from '@/stores/presets'
 import { useThemeStore } from '@/stores/theme'
 import { ATMOSPHERES, BANDS, getBand } from '@/data/bands'
+import AuraLogo from '@/components/AuraLogo.vue'
+
+const REPO_URL = 'https://github.com/jaybodecode/binaural-therapy'
 
 const session = useSessionStore()
 const presets = usePresetsStore()
@@ -84,7 +87,10 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
 <template>
   <main class="home">
     <header class="home__header">
-      <h1 class="home__title">Binaural Therapy</h1>
+      <div class="home__title-row">
+        <AuraLogo :size="34" class="shrink-0" />
+        <h1 class="home__title">Aura — Binaural Therapy</h1>
+      </div>
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
       <p class="home__links">
         Sound off?
@@ -446,6 +452,23 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
       </button>
       <button v-else type="button" class="btn-secondary w-full" @click="session.stop">Stop</button>
     </div>
+
+    <!-- Footer / support -->
+    <footer class="home__footer">
+      <a :href="REPO_URL" target="_blank" rel="noopener" class="home__support">
+        <svg class="home__star" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+          <path
+            d="M12 2l2.9 6.07 6.6.9-4.8 4.64 1.16 6.5L12 17.2 6.14 20.1l1.16-6.5L2.5 8.97l6.6-.9z"
+            fill="currentColor"
+          />
+        </svg>
+        <span>
+          Please star our project on GitHub to
+          <span class="home__love" aria-hidden="true">❤</span>
+          support our free app!
+        </span>
+      </a>
+    </footer>
   </main>
 </template>
 
@@ -458,6 +481,9 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
 .home__header {
   @apply flex flex-col gap-2;
 }
+.home__title-row {
+  @apply flex items-center gap-3;
+}
 .home__title {
   @apply text-3xl font-bold tracking-tight;
 }
@@ -469,6 +495,49 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
 }
 .home__link {
   @apply text-accent underline;
+}
+
+.home__footer {
+  @apply mt-2 flex justify-center pb-2;
+}
+.home__support {
+  @apply inline-flex items-center gap-2 text-muted text-xs leading-relaxed;
+}
+.home__star {
+  animation: star-shimmer 2.4s ease-in-out infinite;
+  color: #f0c14b;
+}
+.home__love {
+  color: #f06b6b;
+  animation: love-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes star-shimmer {
+  0%,
+  100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.3);
+  }
+}
+@keyframes love-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.25);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home__star,
+  .home__love {
+    animation: none;
+  }
 }
 .home__section-title {
   @apply text-fg mb-2 text-lg font-semibold;
