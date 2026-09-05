@@ -9,6 +9,14 @@ import {
 } from './noise'
 import { resolveLoopBuffer } from './loopCache'
 import { LOOP_REGISTRY } from './loops'
+import {
+  createSpatialLayer,
+  setupListener,
+  type PanningMode,
+  type SpatialConfig,
+  type SpatialLayer,
+} from './panning'
+import { DEFAULT_SPATIAL } from './panning'
 
 /**
  * Ramp durations per appspec §5.3.
@@ -55,6 +63,88 @@ function createAudioEngine() {
   let targetToneGain = 0.2
   let targetAtmosGain = 0.75
 
+  // ── Spatial (PannerMode) state ────────────────────────────────────────────
+  const spatialConfig: SpatialConfig = { ...DEFAULT_SPATIAL }
+  let spatialNode: PannerNode | null = null
+  let spatialLayer: SpatialLayer | null = null
+  let driftRAF: number | null = null
+  const spatialMode = ref<PanningMode>('off')
+
+  function connectAtmosphere(engine: AtmosphereEngine) {
+    if (!atmosGain) return
+    if (spatialNode) {
+      engine.gain.connect(spatialNode).connect(atmosGain)
+    } else {
+      engine.gain.connect(atmosGain)
+    }
+  }
+
+  /** Rebuild the panner when the spatial config changes. */
+  function rebuildSpatial() {
+    if (!ctx) return
+    if (spatialNode) {
+      try {
+        spatialNode.disconnect()
+      } catch {
+        /* noop */
+      }
+    }
+    spatialNode = null
+    spatialLayer = null
+
+    if (spatialConfig.mode !== 'off' && typeof ctx.createPanner === 'function') {
+      spatialLayer = createSpatialLayer(ctx, spatialConfig)
+      spatialNode = spatialLayer?.node ?? null
+    }
+    // Re-wire the current atmosphere if it exists.
+    if (atmosphere && atmosGain) {
+      try {
+        atmosphere.gain.disconnect()
+      } catch {
+        /* noop */
+      }
+      if (spatialNode) {
+        atmosphere.gain.connect(spatialNode).connect(atmosGain)
+      } else {
+        atmosphere.gain.connect(atmosGain)
+      }
+    }
+    spatialMode.value = spatialConfig.mode
+    if (spatialConfig.mode === 'drift') startDrift()
+    else stopDrift()
+  }
+
+  function startDrift() {
+    if (driftRAF != null || !spatialLayer) return
+    const loop = (t: number) => {
+      if (spatialLayer) {
+        const base = DEFAULT_SPATIAL.azimuth
+        const phase = (t / 1000) * spatialConfig.driftSpeed * 0.02 + base
+        const az = base + Math.sin(phase) * spatialConfig.wanderRadius
+        spatialLayer.apply({ azimuth: az })
+      }
+      if (status.value === 'playing' || spatialConfig.mode === 'drift') {
+        driftRAF = requestAnimationFrame(loop)
+      } else {
+        driftRAF = null
+      }
+    }
+    driftRAF = requestAnimationFrame(loop)
+  }
+
+  function stopDrift() {
+    if (driftRAF != null) {
+      cancelAnimationFrame(driftRAF)
+      driftRAF = null
+    }
+  }
+
+  function setSpatial(cfg: Partial<SpatialConfig>) {
+    Object.assign(spatialConfig, cfg)
+    rebuildSpatial()
+    spatialMode.value = spatialConfig.mode
+  }
+
   // ── Low-level helpers ─────────────────────────────────────────────────────
   function ramp(param: AudioParam | null, target: number, seconds: number) {
     if (!param || !ctx) return
@@ -90,6 +180,10 @@ function createAudioEngine() {
       // Not supported — fall back to direct output (fine on desktop).
       anchor = null
     }
+
+    // Set up the immersive listener + any pre-configured spatial layer.
+    setupListener(ctx)
+    rebuildSpatial()
   }
 
   function ensurePlayback() {
@@ -144,7 +238,7 @@ function createAudioEngine() {
     // loops are applied on later explicit atmosphere switches.
     if (!atmosphere && currentAtmosphereId) {
       atmosphere = createAtmosphere(ctx, currentAtmosphereId)
-      atmosphere.gain.connect(atmosGain)
+      connectAtmosphere(atmosphere)
     }
 
     ramp(toneGain.gain, targetToneGain, RAMP.toneGain)
@@ -177,6 +271,7 @@ function createAudioEngine() {
       }
       oscL = null
       oscR = null
+      stopDrift()
       status.value = 'unlocked'
     }, 1600)
   }
@@ -238,7 +333,7 @@ function createAudioEngine() {
       }
 
       if (atmosphere) {
-        atmosphere.gain.connect(atmosGain!)
+        connectAtmosphere(atmosphere)
         if (wasPlaying && atmosGain) {
           ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
         }
@@ -278,6 +373,7 @@ function createAudioEngine() {
   return {
     status,
     loopActive,
+    spatialMode,
     unlock,
     start,
     stop,
@@ -287,6 +383,7 @@ function createAudioEngine() {
     pingChannel,
     setAtmosphereGain,
     setAtmosphere,
+    setSpatial,
     atmosphereOptions,
   }
 }

@@ -2,12 +2,13 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { getBand } from '@/data/bands'
 import { useAudioEngine } from '@/audio/engine'
+import type { SpatialConfig } from '@/audio/panning'
 import { loadSettings, saveSettings } from './settings'
 import type { AtmosphereId, BandId } from '@/data/bands'
 
 /**
- * M1 session store. Owns the user-visible state (band, atmosphere, gains,
- * play state) and keeps it in sync with the shared audio engine.
+ * Session store. Owns the user-visible state (band, atmosphere, gains,
+ * spatial mode, play state) and keeps it in sync with the shared audio engine.
  */
 export const useSessionStore = defineStore('session', () => {
   const engine = useAudioEngine()
@@ -20,18 +21,23 @@ export const useSessionStore = defineStore('session', () => {
   const toneGain = ref(persisted.toneGain)
   const atmosphereGain = ref(persisted.atmosphereGain)
   const beatHz = ref(persisted.beatHz)
+  const spatial = ref<SpatialConfig>({ ...persisted.spatial })
 
   const isPlaying = computed(() => engine.status.value === 'playing')
   const canPlay = computed(() => engine.status.value !== 'idle')
 
   const currentBand = computed(() => getBand(band.value))
 
-  // Pass-through to engine (keeps engine as the single source of truth for audio).
+  /** The beat frequency actually driving the engine: override or band default. */
+  const effectiveBeat = computed(() => {
+    const b = getBand(band.value)
+    return beatHz.value ?? b.defaultBeatHz
+  })
+
   function setBand(id: BandId) {
     band.value = id
-    beatHz.value = null // reset to band default
+    beatHz.value = null
     engine.setBand(id)
-    // Follow the band's preferred atmosphere (appspec §4).
     const pref = getBand(id).preferredAtmosphere
     atmosphere.value = pref
     engine.setAtmosphere(pref)
@@ -57,12 +63,18 @@ export const useSessionStore = defineStore('session', () => {
     engine.setBeat(hz)
   }
 
+  function setSpatial(cfg: Partial<SpatialConfig>) {
+    spatial.value = { ...spatial.value, ...cfg }
+    engine.setSpatial(cfg)
+  }
+
   function start() {
     engine.setBand(band.value)
     engine.setAtmosphere(atmosphere.value)
     engine.setBeat(effectiveBeat.value)
     engine.setToneGain(toneGain.value)
     engine.setAtmosphereGain(atmosphereGain.value)
+    engine.setSpatial(spatial.value)
     engine.start()
   }
 
@@ -70,24 +82,17 @@ export const useSessionStore = defineStore('session', () => {
     engine.stop()
   }
 
-  function pingChannel(side: 'left' | 'right') {
-    engine.pingChannel(side)
-  }
-
   async function unlockAndStart() {
     await engine.unlock()
     start()
   }
 
-  /** The beat frequency actually driving the engine: custom override or band default. */
-  const effectiveBeat = computed(() => {
-    const b = getBand(band.value)
-    return beatHz.value ?? b.defaultBeatHz
-  })
+  function pingChannel(side: 'left' | 'right') {
+    engine.pingChannel(side)
+  }
 
-  // Persist on any significant change.
   watch(
-    [band, atmosphere, toneGain, atmosphereGain, beatHz],
+    [band, atmosphere, toneGain, atmosphereGain, beatHz, spatial],
     () => {
       saveSettings({
         band: band.value,
@@ -95,6 +100,7 @@ export const useSessionStore = defineStore('session', () => {
         toneGain: toneGain.value,
         atmosphereGain: atmosphereGain.value,
         beatHz: beatHz.value,
+        spatial: spatial.value,
       })
     },
     { deep: true },
@@ -107,6 +113,7 @@ export const useSessionStore = defineStore('session', () => {
     toneGain,
     atmosphereGain,
     beatHz,
+    spatial,
     isPlaying,
     canPlay,
     currentBand,
@@ -116,6 +123,7 @@ export const useSessionStore = defineStore('session', () => {
     setToneGain,
     setAtmosphereGain,
     setBeat,
+    setSpatial,
     start,
     stop,
     unlockAndStart,

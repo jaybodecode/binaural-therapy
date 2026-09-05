@@ -131,6 +131,105 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       </div>
     </section>
 
+    <!-- Spatial / Surround (PannerMode) -->
+    <section class="card" aria-labelledby="spatial-heading">
+      <h2 id="spatial-heading" class="home__section-title">Ambient space</h2>
+      <p class="muted-note">
+        Place the background sound around your head (use headphones). The binaural tone itself stays
+        safely hard-panned.
+      </p>
+      <div class="chip-row mt-2">
+        <button
+          v-for="(label, key) in { off: 'Off', surround: 'Surround', drift: 'Drift' }"
+          :key="key"
+          type="button"
+          class="chip"
+          :class="{ 'chip--active': session.spatial.mode === key }"
+          :aria-pressed="session.spatial.mode === key"
+          @click="session.setSpatial({ mode: key as 'off' | 'surround' | 'drift' })"
+        >
+          {{ label }}
+        </button>
+      </div>
+
+      <div v-if="session.spatial.mode !== 'off'" class="mt-3">
+        <div class="field">
+          <div class="field__label">
+            <span>Azimuth (left–right)</span>
+            <output>{{ session.spatial.azimuth }}°</output>
+          </div>
+          <input
+            type="range"
+            min="-180"
+            max="180"
+            step="5"
+            :value="session.spatial.azimuth"
+            class="slider"
+            @input="
+              session.setSpatial({ azimuth: Number(($event.target as HTMLInputElement).value) })
+            "
+          />
+        </div>
+        <div class="field">
+          <div class="field__label">
+            <span>Elevation (up–down)</span>
+            <output>{{ session.spatial.elevation }}°</output>
+          </div>
+          <input
+            type="range"
+            min="-60"
+            max="60"
+            step="5"
+            :value="session.spatial.elevation"
+            class="slider"
+            @input="
+              session.setSpatial({ elevation: Number(($event.target as HTMLInputElement).value) })
+            "
+          />
+        </div>
+        <template v-if="session.spatial.mode === 'drift'">
+          <div class="field">
+            <div class="field__label">
+              <span>Wander radius</span>
+              <output>{{ session.spatial.wanderRadius }}°</output>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="180"
+              step="5"
+              :value="session.spatial.wanderRadius"
+              class="slider"
+              @input="
+                session.setSpatial({
+                  wanderRadius: Number(($event.target as HTMLInputElement).value),
+                })
+              "
+            />
+          </div>
+          <div class="field">
+            <div class="field__label">
+              <span>Drift speed</span>
+              <output>{{ session.spatial.driftSpeed }}</output>
+            </div>
+            <input
+              type="range"
+              min="1"
+              max="60"
+              step="1"
+              :value="session.spatial.driftSpeed"
+              class="slider"
+              @input="
+                session.setSpatial({
+                  driftSpeed: Number(($event.target as HTMLInputElement).value),
+                })
+              "
+            />
+          </div>
+        </template>
+      </div>
+    </section>
+
     <!-- Beat slider -->
     <section class="card" aria-labelledby="beat-heading">
       <h2 id="beat-heading" class="home__section-title">Beat frequency</h2>
