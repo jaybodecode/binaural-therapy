@@ -548,7 +548,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
 }
 
 .band-grid {
-  @apply grid grid-cols-5 gap-2;
+  @apply grid grid-cols-3 gap-2 sm:grid-cols-5;
 }
 .band-card {
   @apply flex flex-col items-center gap-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-center transition-colors;
