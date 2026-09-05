@@ -88,12 +88,13 @@ function createAudioEngine() {
     spatialNode = null
     spatialLayer = null
 
-    // Spatial applies to the BACKGROUND layer only (carriers + noise stay
-    // simple stereo; the binaural percept must stay hard-panned).
+    // Spatial applies to the noise + background ambient layers (carriers
+    // stay hard-panned StereoPanner to protect the binaural percept).
     if (spatialConfig.mode !== 'off' && typeof ctx.createPanner === 'function') {
       spatialLayer = createSpatialLayer(ctx, spatialConfig)
       spatialNode = spatialLayer?.node ?? null
     }
+    connectNoise()
     connectBg()
     spatialMode.value = spatialConfig.mode
     if (spatialConfig.mode === 'drift') startDrift()
@@ -198,14 +199,26 @@ function createAudioEngine() {
     oscR.start()
   }
 
-  // Connect noise engine to its gain.
+  // Connect noise engine to its gain (optionally through the spatial node).
   function connectNoise() {
-    if (noiseEngine && noiseGain) noiseEngine.gain.connect(noiseGain)
+    if (!noiseEngine || !noiseGain) return
+    try {
+      noiseEngine.gain.disconnect()
+    } catch {
+      /* noop */
+    }
+    if (spatialNode) noiseEngine.gain.connect(spatialNode).connect(noiseGain)
+    else noiseEngine.gain.connect(noiseGain)
   }
 
   // Connect background engine, optionally through the spatial node.
   function connectBg() {
     if (!bgEngine || !bgGain) return
+    try {
+      bgEngine.gain.disconnect()
+    } catch {
+      /* noop */
+    }
     if (spatialNode) bgEngine.gain.connect(spatialNode).connect(bgGain)
     else bgEngine.gain.connect(bgGain)
   }
@@ -290,6 +303,31 @@ function createAudioEngine() {
   function setBeat(hz: number) {
     beatHz = hz
     if (ctx && oscR) ramp(oscR.frequency, carrierHz + hz, 0.05)
+  }
+
+  /**
+   * Schedule a state-transition path for the beat frequency: a sequence of
+   * [targetBeat Hz, duration ms]. Ramps (linearRampToValueAtTime) at fast
+   * anti-pop speed to follow the sequence. Holds each target for its duration,
+   * then moves to the next. Returns the total duration so callers can show
+   * progress. Used by Power Nap / Go-to-bed / Oscillate modes (§15).
+   */
+  function scheduleBeatPath(seq: { beat: number; holdMs: number }[], onEnd?: () => void): number {
+    if (!ctx || !oscR || !seq.length) return 0
+    const freq = oscR.frequency
+    let t = ctx.currentTime + 0.05
+    freq.cancelScheduledValues(t)
+    freq.setValueAtTime(carrierHz + seq[0].beat, t)
+    const totalMs = seq.reduce((s, s2) => s + s2.holdMs, 0)
+    for (const step of seq) {
+      // Brief ramp to target then hold.
+      const target = carrierHz + step.beat
+      freq.linearRampToValueAtTime(target, t + 0.2)
+      freq.setValueAtTime(target, t + 0.2 + step.holdMs / 1000)
+      t += 0.2 + step.holdMs / 1000
+    }
+    if (onEnd) window.setTimeout(onEnd, totalMs + 400)
+    return totalMs
   }
 
   function setToneGain(g: number) {
@@ -392,6 +430,7 @@ function createAudioEngine() {
     stop,
     setBand,
     setBeat,
+    scheduleBeatPath,
     setToneGain,
     setNoise,
     setNoiseGain,

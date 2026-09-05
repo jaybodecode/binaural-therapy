@@ -4,6 +4,7 @@ import { useSessionStore } from '@/stores/session'
 import { usePresetsStore } from '@/stores/presets'
 import { useThemeStore } from '@/stores/theme'
 import { BACKGROUNDS, BANDS, NOISES, getBand } from '@/data/bands'
+import { TRANSIT_MODES } from '@/data/transitions'
 import AuraLogo from '@/components/AuraLogo.vue'
 
 const REPO_URL = 'https://github.com/jaybodecode/binaural-therapy'
@@ -234,6 +235,32 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       </div>
     </section>
 
+    <!-- State-transition mode -->
+    <section class="card" aria-labelledby="transit-heading">
+      <h2 id="transit-heading" class="home__section-title">Session mode</h2>
+      <p class="muted-note">
+        Choose how Aura moves between states over time. Pick a mode, then press a band above — the
+        beat will ramp through the states automatically.
+      </p>
+      <div class="transit-grid">
+        <button
+          v-for="tm in TRANSIT_MODES"
+          :key="tm.id"
+          type="button"
+          class="transit-card"
+          :class="{ 'transit-card--active': session.transitMode === tm.id }"
+          :aria-pressed="session.transitMode === tm.id"
+          @click="session.setTransitMode(tm.id)"
+        >
+          <span class="transit-card__label">{{ tm.label }}</span>
+          <span class="transit-card__desc">{{ tm.description }}</span>
+        </button>
+      </div>
+      <p v-if="session.transitMode !== 'state-lock'" class="muted-note">
+        Transition will begin when you tap the play button below.
+      </p>
+    </section>
+
     <!-- Beat slider -->
     <section class="card" aria-labelledby="beat-heading">
       <h2 id="beat-heading" class="home__section-title">Beat frequency</h2>
@@ -258,9 +285,9 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Spatial / Surround (PannerMode) -->
     <section class="card" aria-labelledby="spatial-heading">
       <h2 id="spatial-heading" class="home__section-title">Ambient space</h2>
-      <p class="muted-note">
-        Spread the background sound around your head (use headphones). The binaural tone stays
-        safely hard-panned.
+<p class="muted-note">
+        Spread the noise &amp; background sound around your head (use headphones). The binaural tone
+        stays safely hard-panned. Pick Surround or Drift, then play — you'll hear the ambience move.
       </p>
       <div class="chip-row mt-2">
         <button
@@ -590,6 +617,22 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply text-fg text-sm font-semibold;
 }
 .atmos-card__desc {
+  @apply text-muted text-xs leading-snug;
+}
+
+.transit-grid {
+  @apply mt-2 grid grid-cols-1 gap-2;
+}
+.transit-card {
+  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-left transition-colors;
+}
+.transit-card--active {
+  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+}
+.transit-card__label {
+  @apply text-fg text-sm font-semibold;
+}
+.transit-card__desc {
   @apply text-muted text-xs leading-snug;
 }
 

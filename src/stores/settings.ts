@@ -1,4 +1,5 @@
 import type { BackgroundId, BandId, NoiseId } from '@/data/bands'
+import type { TransitMode } from '@/data/transitions'
 import {
   DEFAULT_BACKGROUND,
   DEFAULT_BACKGROUND_GAIN,
@@ -29,6 +30,7 @@ export interface Settings {
   background: BackgroundId
   backgroundGain: number
   spatial: SpatialSettings
+  transitMode: TransitMode
 }
 
 export function defaultSettings(): Settings {
@@ -41,6 +43,7 @@ export function defaultSettings(): Settings {
     background: DEFAULT_BACKGROUND,
     backgroundGain: DEFAULT_BACKGROUND_GAIN,
     spatial: { ...DEFAULT_SPATIAL },
+    transitMode: 'state-lock',
   }
 }
 

@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue'
 import { getBand, type BackgroundId, type BandId, type NoiseId } from '@/data/bands'
 import { useAudioEngine } from '@/audio/engine'
 import type { SpatialConfig } from '@/audio/panning'
+import { getTransit, type TransitMode } from '@/data/transitions'
 import { loadSettings, saveSettings } from './settings'
 
 /**
@@ -24,6 +25,7 @@ export const useSessionStore = defineStore('session', () => {
   const background = ref<BackgroundId>(persisted.background)
   const backgroundGain = ref(persisted.backgroundGain)
   const spatial = ref<SpatialConfig>({ ...persisted.spatial })
+  const transitMode = ref<TransitMode>(persisted.transitMode ?? 'state-lock')
 
   const isPlaying = computed(() => engine.status.value === 'playing')
   const canPlay = computed(() => engine.status.value !== 'idle')
@@ -83,6 +85,10 @@ export const useSessionStore = defineStore('session', () => {
     engine.setSpatial(cfg)
   }
 
+  function setTransitMode(id: TransitMode) {
+    transitMode.value = id
+  }
+
   function start() {
     engine.setBand(band.value)
     engine.setNoise(noise.value)
@@ -93,6 +99,15 @@ export const useSessionStore = defineStore('session', () => {
     engine.setBgGain(backgroundGain.value)
     engine.setSpatial(spatial.value)
     engine.start()
+
+    // State-transition paths (Power Nap / Go-to-bed / Oscillate).
+    if (transitMode.value !== 'state-lock') {
+      const def = getTransit(transitMode.value)
+      const steps = def.steps(effectiveBeat.value, currentBand.value.name)
+      if (steps.some((s) => s.holdMs > 0)) {
+        engine.scheduleBeatPath(steps)
+      }
+    }
   }
 
   function stop() {
@@ -109,7 +124,7 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   watch(
-    [band, beatHz, toneGain, noise, noiseGain, background, backgroundGain, spatial],
+    [band, beatHz, toneGain, noise, noiseGain, background, backgroundGain, spatial, transitMode],
     () => {
       saveSettings({
         band: band.value,
@@ -120,6 +135,7 @@ export const useSessionStore = defineStore('session', () => {
         background: background.value,
         backgroundGain: backgroundGain.value,
         spatial: spatial.value,
+        transitMode: transitMode.value,
       })
     },
     { deep: true },
@@ -135,6 +151,7 @@ export const useSessionStore = defineStore('session', () => {
     background,
     backgroundGain,
     spatial,
+    transitMode,
     isPlaying,
     canPlay,
     currentBand,
@@ -148,6 +165,7 @@ export const useSessionStore = defineStore('session', () => {
     setBackgroundGain,
     setBeat,
     setSpatial,
+    setTransitMode,
     start,
     stop,
     unlockAndStart,
