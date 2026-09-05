@@ -6,8 +6,8 @@ A state-transitioning binaural beats and colored noise web app, designed **iOS-f
 
 <table>
   <tr>
-    <td align="center"><img src="./screenshots/iphone.png" width="200" alt="Aura on iOS (dark theme)"><br><em>Dark (default)</em></td>
-    <td align="center"><img src="./screenshots/readme-white.png" width="200" alt="Aura on iOS (white theme)"><br><em>White theme</em></td>
+    <td align="center"><img src="./screenshots/aura-dark.png" width="200" alt="Aura on iOS (dark theme)"><br><em>Dark (default)</em></td>
+    <td align="center"><img src="./screenshots/aura-white.png" width="200" alt="Aura on iOS (white theme)"><br><em>White theme</em></td>
     <td align="center"><img src="./screenshots/splash.png" width="200" alt="Aura startup splash"><br><em>Startup splash</em></td>
   </tr>
 </table>
@@ -53,9 +53,9 @@ The authoritative product spec and decision log live in [`appspec.md`](./appspec
 
 ## Screenshots
 
-| iPhone (dark) | iPhone (white) | Startup splash | iPad |
-| :---: | :---: | :---: | :---: |
-| [`screenshots/iphone.png`](./screenshots/iphone.png) | [`screenshots/readme-white.png`](./screenshots/readme-white.png) | [`screenshots/splash.png`](./screenshots/splash.png) | [`screenshots/ipad.png`](./screenshots/ipad.png) |
+|                       iPhone (dark)                        |                        iPhone (white)                        |                    Startup splash                    |                       iPad                       |
+| :--------------------------------------------------------: | :----------------------------------------------------------: | :--------------------------------------------------: | :----------------------------------------------: |
+| [`screenshots/aura-dark.png`](./screenshots/aura-dark.png) | [`screenshots/aura-white.png`](./screenshots/aura-white.png) | [`screenshots/splash.png`](./screenshots/splash.png) | [`screenshots/ipad.png`](./screenshots/ipad.png) |
 
 ## Credits & attribution
 

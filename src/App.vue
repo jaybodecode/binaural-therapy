@@ -93,7 +93,8 @@ onMounted(() => {
   justify-content: center;
   gap: 0.5rem;
   color: #e8ebef;
-  background: radial-gradient(120% 100% at 50% 30%, #141926 0%, #0b0d10 70%),
+  background:
+    radial-gradient(120% 100% at 50% 30%, #141926 0%, #0b0d10 70%),
     linear-gradient(180deg, #0b0d10, #0b0d10);
   transition: opacity 0.6s ease;
 }
@@ -113,7 +114,11 @@ onMounted(() => {
   height: 190px;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  background: radial-gradient(circle, color-mix(in oklab, var(--color-accent) 45%, transparent) 0%, transparent 70%);
+  background: radial-gradient(
+    circle,
+    color-mix(in oklab, var(--color-accent) 45%, transparent) 0%,
+    transparent 70%
+  );
   filter: blur(8px);
 }
 .splash__name {
