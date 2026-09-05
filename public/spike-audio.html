@@ -1,0 +1,643 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b0d10" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Binaural Spike" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <title>Binaural Therapy — iOS Audio Spike</title>
+    <style>
+      :root {
+        --c-bg: #0b0d10;
+        --c-fg: #e8ebef;
+        --c-muted: #8a93a6;
+        --c-accent: #6ea8ff;
+        --c-accent-strong: #4a8aff;
+        --c-warn: #f0b86e;
+        --c-ok: #6ee8a8;
+        --c-bad: #f06b6b;
+        --radius: 14px;
+        --font: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI',
+          Roboto, system-ui, sans-serif;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        background: var(--c-bg);
+        color: var(--c-fg);
+        font-family: var(--font);
+        -webkit-text-size-adjust: 100%;
+      }
+      body {
+        min-height: 100dvh;
+        padding: env(safe-area-inset-top) env(safe-area-inset-right)
+          env(safe-area-inset-bottom) env(safe-area-inset-left);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        max-width: 720px;
+        margin: 0 auto;
+        padding-left: max(env(safe-area-inset-left), 1rem);
+        padding-right: max(env(safe-area-inset-right), 1rem);
+        padding-top: max(env(safe-area-inset-top), 1rem);
+        padding-bottom: max(env(safe-area-inset-bottom), 1rem);
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 0.25rem 0;
+        letter-spacing: -0.01em;
+      }
+      h2 {
+        font-size: 1rem;
+        margin: 0.5rem 0 0.25rem 0;
+        color: var(--c-muted);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+      }
+      .subtitle {
+        color: var(--c-muted);
+        font-size: 0.9rem;
+        margin: 0 0 1rem 0;
+      }
+      .card {
+        background: color-mix(in oklab, var(--c-bg) 92%, white 8%);
+        border-radius: var(--radius);
+        padding: 1rem;
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      }
+      button {
+        min-height: 44px;
+        border-radius: var(--radius);
+        border: 1px solid
+          color-mix(in oklab, var(--c-fg) 15%, transparent);
+        background: transparent;
+        color: var(--c-fg);
+        font: inherit;
+        padding: 0 1rem;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+      }
+      button.primary {
+        background: var(--c-accent);
+        color: #001225;
+        border-color: transparent;
+        font-weight: 600;
+      }
+      button.primary:active {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .btn-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+      .btn-row > button {
+        flex: 1 1 auto;
+        min-width: 120px;
+      }
+      label {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+        font-size: 0.85rem;
+        color: var(--c-muted);
+      }
+      label > input[type='range'] {
+        accent-color: var(--c-accent);
+      }
+      .grid {
+        display: grid;
+        gap: 0.5rem;
+      }
+      .row {
+        display: grid;
+        grid-template-columns: 10rem 1fr;
+        gap: 0.5rem;
+        align-items: center;
+        font-size: 0.85rem;
+      }
+      .row > dt {
+        color: var(--c-muted);
+      }
+      .row > dd {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.8rem;
+      }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      }
+      .pill.ok {
+        background: color-mix(in oklab, var(--c-ok) 20%, transparent);
+        color: var(--c-ok);
+      }
+      .pill.warn {
+        background: color-mix(in oklab, var(--c-warn) 20%, transparent);
+        color: var(--c-warn);
+      }
+      .pill.bad {
+        background: color-mix(in oklab, var(--c-bad) 20%, transparent);
+        color: var(--c-bad);
+      }
+      code {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 2px 4px;
+        border-radius: 4px;
+        font-size: 0.8em;
+      }
+      .log {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.75rem;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 0.5rem;
+        max-height: 12rem;
+        overflow-y: auto;
+        color: var(--c-muted);
+      }
+      .log .ts {
+        color: color-mix(in oklab, var(--c-muted) 50%, transparent);
+      }
+      .log .good {
+        color: var(--c-ok);
+      }
+      .log .bad {
+        color: var(--c-bad);
+      }
+      .log .warn {
+        color: var(--c-warn);
+      }
+      small.muted {
+        color: var(--c-muted);
+        font-size: 0.75rem;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>iOS Audio Spike</h1>
+      <p class="subtitle">
+        Proves the <code>appspec.md §8.3</code> MediaStream anchor +
+        <code>§8.6</code> audio unlock + <code>§8.4</code> MediaSession work
+        on your actual iPhone. Open this in Safari → Add to Home Screen →
+        re-open → test screen lock.
+      </p>
+    </header>
+
+    <section class="card" aria-labelledby="status-h">
+      <h2 id="status-h">Live Status</h2>
+      <dl class="grid">
+        <div class="row">
+          <dt>AudioContext state</dt>
+          <dd id="ctxState">—</dd>
+        </div>
+        <div class="row">
+          <dt>audioSession.type</dt>
+          <dd id="audioSessionType">—</dd>
+        </div>
+        <div class="row">
+          <dt>anchor.played</dt>
+          <dd id="anchorPlayed">—</dd>
+        </div>
+        <div class="row">
+          <dt>mediaSession.title</dt>
+          <dd id="msTitle">—</dd>
+        </div>
+        <div class="row">
+          <dt>visibility</dt>
+          <dd id="visState">—</dd>
+        </div>
+        <div class="row">
+          <dt>iOS userAgent</dt>
+          <dd id="uaFlag">—</dd>
+        </div>
+      </dl>
+    </section>
+
+    <section class="card" aria-labelledby="ctrl-h">
+      <h2 id="ctrl-h">Controls</h2>
+      <div class="btn-row">
+        <button id="btnStart" class="primary">Start (unlock + anchor)</button>
+        <button id="btnPlay" disabled>Play binaural</button>
+        <button id="btnStop" disabled>Stop</button>
+        <button id="btnStereoL" disabled>Ping Left 440 Hz</button>
+        <button id="btnStereoR" disabled>Ping Right 440 Hz</button>
+      </div>
+      <div class="grid" style="margin-top: 0.75rem">
+        <label>
+          Carrier (Hz) — appspec §3.6 says 200–500 optimal
+          <input id="carrier" type="range" min="100" max="900" step="10" value="200" />
+          <span id="carrierVal">200 Hz</span>
+        </label>
+        <label>
+          Beat Δf (Hz) — delta=2, theta=6, alpha=10, beta=18, gamma=40
+          <input id="beat" type="range" min="0.5" max="40" step="0.5" value="2" />
+          <span id="beatVal">2 Hz</span>
+        </label>
+        <label>
+          Tone gain
+          <input id="gain" type="range" min="0" max="0.5" step="0.01" value="0.15" />
+          <span id="gainVal">0.15</span>
+        </label>
+      </div>
+      <p class="muted" style="margin-top: 0.5rem">
+        <small>
+          Defaults match a deep-sleep delta preset
+          (<code>appspec.md §4</code>). All frequency changes use
+          <code>linearRampToValueAtTime</code> per <code>§5.3</code>.
+        </small>
+      </p>
+    </section>
+
+    <section class="card" aria-labelledby="test-h">
+      <h2 id="test-h">iOS Validation Checklist</h2>
+      <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem">
+        <li>Tap <strong>Start</strong>. Status pills turn green.</li>
+        <li>Tap <strong>Play binaural</strong>. You hear a soft delta beat.</li>
+        <li>
+          Lock the screen. Audio should continue for ≥10 s (appspec §8.1,
+          <code>audioSession.type = "playback"</code> + anchor pattern).
+        </li>
+        <li>
+          Pull down Control Center / lock screen. You should see a Now Playing
+          card labeled "Binaural Therapy — Spike".
+        </li>
+        <li>
+          Flip the hardware Ring/Silent switch to silent. Audio should still be
+          audible (appspec §8.2 — <code>type = "playback"</code> bypass).
+        </li>
+        <li>
+          Use the on-lock-screen Pause / Play button. Pause for 30 s, then play.
+          If it fails: known bug, Apple Forums 762582 (appspec §8.4).
+        </li>
+        <li>
+          Swipe the app away from the app switcher, re-tap the icon. Audio
+          context should resume via the <code>visibilitychange</code> handler.
+        </li>
+        <li>
+          Watch the Live Status block — <code>AudioContext state</code> should
+          cycle <code>suspended → running</code> as you background/foreground.
+        </li>
+      </ol>
+    </section>
+
+    <section class="card" aria-labelledby="log-h">
+      <h2 id="log-h">Event Log</h2>
+      <div id="log" class="log" aria-live="polite"></div>
+      <button id="btnClearLog" style="margin-top: 0.5rem">Clear log</button>
+    </section>
+
+    <footer>
+      <small class="muted">
+        Throwaway spike — delete <code>spike-audio.html</code> when M1 lands.
+        See <code>SPIKE.md</code> for the run / test plan.
+      </small>
+    </footer>
+
+    <script>
+      'use strict'
+
+      // ── Logging helpers ─────────────────────────────────────────────────────
+      const logEl = document.getElementById('log')
+      const clearBtn = document.getElementById('btnClearLog')
+      const log = (msg, level = 'info') => {
+        const ts = new Date().toLocaleTimeString()
+        const cls = ['good', 'bad', 'warn'].includes(level) ? ` ${level}` : ''
+        logEl.insertAdjacentHTML(
+          'beforeend',
+          `<div><span class="ts">[${ts}]</span><span class="${cls.trim()}">${msg}</span></div>`,
+        )
+        logEl.scrollTop = logEl.scrollHeight
+        console[level === 'good' ? 'info' : level === 'bad' ? 'error' : 'log'](
+          `[spike] ${msg}`,
+        )
+      }
+      clearBtn.addEventListener('click', () => (logEl.innerHTML = ''))
+
+      // ── Live status panel ───────────────────────────────────────────────────
+      const els = {
+        ctxState: document.getElementById('ctxState'),
+        audioSessionType: document.getElementById('audioSessionType'),
+        anchorPlayed: document.getElementById('anchorPlayed'),
+        msTitle: document.getElementById('msTitle'),
+        visState: document.getElementById('visState'),
+        uaFlag: document.getElementById('uaFlag'),
+      }
+
+      // Detect iOS UA. Useful for the spike log; production gates patterns
+      // on real capability detection, not UA sniffing.
+      const isIOS =
+        /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+      els.uaFlag.textContent = isIOS ? 'yes' : 'no (desktop/Android)'
+      els.uaFlag.innerHTML = isIOS
+        ? '<span class="pill warn">YES — iOS path active</span>'
+        : '<span class="pill ok">no — desktop/Android</span>'
+
+      const setCtxState = (s) => {
+        els.ctxState.innerHTML =
+          s === 'running'
+            ? '<span class="pill ok">running</span>'
+            : s === 'suspended'
+              ? '<span class="pill warn">suspended</span>'
+              : s === 'interrupted'
+                ? '<span class="pill warn">interrupted</span>'
+                : `<span class="pill">${s}</span>`
+      }
+      setCtxState('—')
+
+      if ('audioSession' in navigator) {
+        els.audioSessionType.innerHTML =
+          '<span class="pill ok">available</span>'
+      } else {
+        els.audioSessionType.innerHTML =
+          '<span class="pill bad">not available</span>'
+      }
+
+      // ── Audio engine ────────────────────────────────────────────────────────
+      let ctx = null
+      let masterGain = null
+      let oscL = null
+      let oscR = null
+      let anchor = null
+      let mediaStreamDest = null
+      let startedAt = null
+      let stereoTimer = null
+
+      // app.spec §8.3 — build the MediaStream + <audio> anchor.
+      function buildAudioGraph() {
+        if (ctx) return ctx
+        ctx = new (window.AudioContext || window.webkitAudioContext)()
+        setCtxState(ctx.state)
+        ctx.addEventListener('statechange', () => {
+          setCtxState(ctx.state)
+          log(`AudioContext statechange → ${ctx.state}`, 'info')
+        })
+
+        masterGain = ctx.createGain()
+        masterGain.gain.value = parseFloat(gainInput.value)
+
+        // Direct path to speakers (desktop / Android)
+        masterGain.connect(ctx.destination)
+
+        // iOS anchor path: WebAudio → MediaStream → hidden <audio>
+        mediaStreamDest = ctx.createMediaStreamDestination()
+        masterGain.connect(mediaStreamDest)
+
+        anchor = document.createElement('audio')
+        anchor.setAttribute('playsinline', '')
+        anchor.srcObject = mediaStreamDest.stream
+        // Don't append to DOM — keep it detached per spec.
+
+        els.anchorPlayed.innerHTML = '<span class="pill">created</span>'
+        return ctx
+      }
+
+      // app.spec §8.6 — the synchronous-in-gesture unlock pattern.
+      async function unlockAndStart() {
+        try {
+          log('Click handler entered — synchronously creating AudioContext')
+          // This synchronous line is critical. Do NOT await or setTimeout before resume().
+          const c = buildAudioGraph()
+          await c.resume()
+          log(`AudioContext resumed → state: ${c.state}`, 'good')
+
+          // app.spec §8.2 — set audioSession.type if available (Safari 16.4+)
+          if ('audioSession' in navigator) {
+            navigator.audioSession.type = 'playback'
+            log('navigator.audioSession.type = "playback" set', 'good')
+          } else {
+            log(
+              'navigator.audioSession not available (pre-Safari 16.4 or non-WebKit)',
+              'warn',
+            )
+          }
+
+          // app.spec §8.3 — call anchor.play() inside the same gesture chain.
+          try {
+            await anchor.play()
+            els.anchorPlayed.innerHTML = '<span class="pill ok">playing</span>'
+            log('<audio> anchor is playing (iOS will keep us alive in bg)', 'good')
+          } catch (e) {
+            els.anchorPlayed.innerHTML = `<span class="pill bad">failed: ${e.message}</span>`
+            log(`<audio> anchor play() failed: ${e.message}`, 'bad')
+          }
+
+          // app.spec §8.4 — populate MediaSession metadata + handlers
+          if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+              title: 'Binaural Therapy — Spike',
+              artist: 'appspec.md §8.4 demo',
+              album: 'iOS Audio Spike',
+            })
+            els.msTitle.textContent = 'Binaural Therapy — Spike'
+            log('MediaSession.metadata set', 'good')
+
+            navigator.mediaSession.setActionHandler('play', () => {
+              log('MediaSession action: play', 'good')
+              if (ctx.state !== 'running') ctx.resume()
+              playBinaural()
+            })
+            navigator.mediaSession.setActionHandler('pause', () => {
+              log('MediaSession action: pause', 'good')
+              stopBinaural()
+            })
+            navigator.mediaSession.setActionHandler('stop', () => {
+              log('MediaSession action: stop', 'good')
+              stopBinaural()
+            })
+          } else {
+            log('navigator.mediaSession not available', 'warn')
+          }
+
+          // app.spec §8.1 — handle visibility change to re-resume.
+          // NOTE: only added AFTER unlock, per gesture-chain best practice.
+          document.addEventListener('visibilitychange', onVisibilityChange)
+          log('visibilitychange listener installed', 'good')
+
+          // Enable the rest of the controls.
+          btnStart.disabled = true
+          btnPlay.disabled = false
+          btnStop.disabled = false
+          btnStereoL.disabled = false
+          btnStereoR.disabled = false
+          log('Controls enabled', 'good')
+        } catch (err) {
+          log(`Unlock failed: ${err.message || err}`, 'bad')
+        }
+      }
+
+      function onVisibilityChange() {
+        els.visState.innerHTML =
+          document.visibilityState === 'visible'
+            ? '<span class="pill ok">visible</span>'
+            : '<span class="pill warn">hidden</span>'
+        log(`visibilitychange → ${document.visibilityState}`, 'info')
+
+        if (document.visibilityState !== 'visible') return
+        if (!ctx) return
+        if (ctx.state === 'interrupted' || ctx.state === 'suspended') {
+          log(`Foregrounded with ctx.state=${ctx.state}; attempting resume()`, 'warn')
+          ctx
+            .resume()
+            .then(() => log(`Resume OK → ${ctx.state}`, 'good'))
+            .catch((e) => log(`Resume failed: ${e.message}`, 'bad'))
+        }
+        if (anchor && anchor.paused) {
+          anchor.play().catch((e) => log(`Anchor re-play failed: ${e.message}`, 'bad'))
+        }
+      }
+      els.visState.innerHTML =
+        document.visibilityState === 'visible'
+          ? '<span class="pill ok">visible</span>'
+          : '<span class="pill warn">hidden</span>'
+
+      // ── Binaural engine (the part §5 of appspec.md describes) ──────────────
+      const carrierInput = document.getElementById('carrier')
+      const beatInput = document.getElementById('beat')
+      const gainInput = document.getElementById('gain')
+      const carrierVal = document.getElementById('carrierVal')
+      const beatVal = document.getElementById('beatVal')
+      const gainVal = document.getElementById('gainVal')
+
+      function rampParam(param, target, seconds = 5) {
+        if (!param) return
+        const now = ctx.currentTime
+        param.cancelScheduledValues(now)
+        param.setValueAtTime(param.value, now)
+        param.linearRampToValueAtTime(target, now + seconds)
+      }
+
+      carrierInput.addEventListener('input', () => {
+        carrierVal.textContent = `${carrierInput.value} Hz`
+        if (oscL) rampParam(oscL.frequency, parseFloat(carrierInput.value), 5)
+        if (oscR)
+          rampParam(
+            oscR.frequency,
+            parseFloat(carrierInput.value) + parseFloat(beatInput.value),
+            5,
+          )
+      })
+      beatInput.addEventListener('input', () => {
+        beatVal.textContent = `${beatInput.value} Hz`
+        if (oscR)
+          rampParam(
+            oscR.frequency,
+            parseFloat(carrierInput.value) + parseFloat(beatInput.value),
+            60,
+          )
+      })
+      gainInput.addEventListener('input', () => {
+        gainVal.textContent = parseFloat(gainInput.value).toFixed(2)
+        if (masterGain)
+          rampParam(masterGain.gain, parseFloat(gainInput.value), 1.5)
+      })
+
+      function playBinaural() {
+        if (!ctx) return
+        if (oscL) return // already playing
+        const carrier = parseFloat(carrierInput.value)
+        const beat = parseFloat(beatInput.value)
+
+        oscL = ctx.createOscillator()
+        oscR = ctx.createOscillator()
+        oscL.type = oscR.type = 'sine'
+        oscL.frequency.value = carrier
+        oscR.frequency.value = carrier + beat
+
+        // Hard pan per appspec §5.2
+        const panL = ctx.createStereoPanner()
+        const panR = ctx.createStereoPanner()
+        panL.pan.value = -1
+        panR.pan.value = 1
+        oscL.connect(panL).connect(masterGain)
+        oscR.connect(panR).connect(masterGain)
+
+        oscL.start()
+        oscR.start()
+        startedAt = ctx.currentTime
+        log(`Binaural playing: ${carrier} Hz ± ${beat / 2}`, 'good')
+      }
+
+      function stopBinaural() {
+        if (!oscL) return
+        // Quick fade-out per §5.3 ramp table — 1.5 s tone gain ramp.
+        const now = ctx.currentTime
+        masterGain.gain.cancelScheduledValues(now)
+        masterGain.gain.setValueAtTime(masterGain.gain.value, now)
+        masterGain.gain.linearRampToValueAtTime(0, now + 1.5)
+        setTimeout(() => {
+          try {
+            oscL.stop()
+            oscR.stop()
+          } catch (e) {
+            /* already stopped */
+          }
+          oscL.disconnect()
+          oscR.disconnect()
+          oscL = null
+          oscR = null
+          masterGain.gain.value = parseFloat(gainInput.value)
+          log('Binaural stopped', 'info')
+        }, 1600)
+      }
+
+      function pingChannel(side) {
+        if (!ctx) return
+        const osc = ctx.createOscillator()
+        const gain = ctx.createGain()
+        const pan = ctx.createStereoPanner()
+        osc.type = 'sine'
+        osc.frequency.value = 440
+        pan.pan.value = side === 'L' ? -1 : 1
+        gain.gain.value = 0.3
+        osc.connect(pan).connect(gain).connect(masterGain)
+        osc.start()
+        gain.gain.setValueAtTime(0.3, ctx.currentTime)
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.6)
+        osc.stop(ctx.currentTime + 0.7)
+        log(`Stereo ping ${side} — should be audible only in ${side === 'L' ? 'left' : 'right'} ear`, 'good')
+      }
+
+      // ── Wire buttons ────────────────────────────────────────────────────────
+      const btnStart = document.getElementById('btnStart')
+      const btnPlay = document.getElementById('btnPlay')
+      const btnStop = document.getElementById('btnStop')
+      const btnStereoL = document.getElementById('btnStereoL')
+      const btnStereoR = document.getElementById('btnStereoR')
+
+      btnStart.addEventListener('click', () => unlockAndStart())
+      btnPlay.addEventListener('click', () => playBinaural())
+      btnStop.addEventListener('click', () => stopBinaural())
+      btnStereoL.addEventListener('click', () => pingChannel('L'))
+      btnStereoR.addEventListener('click', () => pingChannel('R'))
+
+      log('Spike ready. Tap "Start" to unlock audio.', 'info')
+    </script>
+  </body>
+</html>

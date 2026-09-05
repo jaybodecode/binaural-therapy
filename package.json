@@ -1,0 +1,46 @@
+{
+  "name": "binaural-therapy",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "description": "State-transitioning binaural beat and colored noise PWA. iOS-first Home Screen install.",
+  "scripts": {
+    "dev": "vite",
+    "build": "run-s type-check build:vite",
+    "build:vue": "vue-tsc --build",
+    "build:vite": "vite build",
+    "preview": "vite preview",
+    "type-check": "vue-tsc --build",
+    "lint": "eslint . --cache",
+    "lint:fix": "eslint . --cache --fix",
+    "format": "prettier --write \"**/*.{ts,vue,json,md,yml,yaml,css,html}\" --ignore-path .gitignore",
+    "format:check": "prettier --check \"**/*.{ts,vue,json,md,yml,yaml,css,html}\" --ignore-path .gitignore",
+    "pwa:generate-icons": "pwa-asset-generator public/pwa-icon.svg public/pwa-icons --padding 0 --background \"#0b0d10\""
+  },
+  "dependencies": {
+    "npm-run-all": "^4.1.5",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@types/node": "^22.10.5",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/eslint-config-typescript": "^14.2.0",
+    "eslint": "^9.17.0",
+    "eslint-plugin-vue": "^9.32.0",
+    "npm-run-all2": "^7.0.1",
+    "prettier": "^3.4.2",
+    "pwa-asset-generator": "^3.2.2",
+    "tailwindcss": "^4.0.0",
+    "typescript": "~5.6.3",
+    "vite": "^5.4.11",
+    "vite-plugin-pwa": "^0.21.1",
+    "vue-tsc": "^2.2.0",
+    "workbox-window": "^7.3.0"
+  },
+  "engines": {
+    "node": ">=20.11.0"
+  }
+}

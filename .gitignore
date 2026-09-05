@@ -1,0 +1,57 @@
+# Node
+node_modules/
+.npm/
+.pnpm-store/
+
+# Build output
+dist/
+.output/
+.nuxt/
+.vercel/
+.netlify/
+
+# Vite cache
+.vite/
+*.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+*.swp
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Tool caches
+.eslintcache
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Service Worker / PWA generated artifacts
+dev-dist/
+public/sw.js
+public/workbox-*.js
+
+# Test coverage
+coverage/
+
+# Local loop caches (if user tests decoding locally)
+/.cache/
