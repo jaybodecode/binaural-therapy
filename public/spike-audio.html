@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0d10" />
     <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Binaural Spike" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -278,6 +279,49 @@
           changes use <code>linearRampToValueAtTime</code> per <code>§5.3</code>.
         </small>
       </p>
+    </section>
+
+    <section class="card" aria-labelledby="a2hs-h">
+      <h2 id="a2hs-h">Add to Home Screen — explicit steps</h2>
+      <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem">
+        iOS Safari <strong>never auto-prompts</strong> to install a PWA. You must invoke Share → Add
+        to Home Screen manually. If the row isn't there, one of these is wrong:
+      </p>
+      <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem">
+        <li>
+          You opened the URL from a non-Safari app (Slack, Mail, Notes, etc.).
+          <strong>Open it in Safari first.</strong>
+        </li>
+        <li>
+          The page wasn't fully loaded yet. <strong>Wait until you see this section</strong> before
+          tapping Share.
+        </li>
+        <li>
+          You're using Chrome / Firefox / Edge on iOS — they don't support A2HS.
+          <strong>Use Safari.</strong>
+        </li>
+        <li>
+          You're in Private Browsing. <strong>Turn it off</strong> (Safari hides A2HS in private
+          mode).
+        </li>
+        <li>
+          The Share icon isn't on the address bar — it's at the
+          <strong>bottom-center of the screen</strong> on iPhone, a square with an arrow pointing
+          up.
+        </li>
+      </ol>
+      <p style="margin: 0.75rem 0 0.25rem 0; font-size: 0.85rem">
+        <strong>Steps that work:</strong>
+      </p>
+      <ol style="margin: 0; padding-left: 1.25rem; font-size: 0.85rem">
+        <li>In Safari, tap the <strong>Share icon</strong> (square + up arrow, bottom-center).</li>
+        <li>Scroll the share sheet and tap <strong>"Add to Home Screen"</strong>.</li>
+        <li>Confirm the name "Binaural Therapy" and tap <strong>Add</strong>.</li>
+        <li>
+          Open the app from the Home Screen (not from Safari tab) — that's where background audio
+          matters.
+        </li>
+      </ol>
     </section>
 
     <section class="card" aria-labelledby="test-h">
