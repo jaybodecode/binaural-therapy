@@ -92,9 +92,8 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
       <p class="home__links">
         Sound off?
-        <RouterLink class="home__link" to="/credits">Credits</RouterLink>
-        ·
-        <RouterLink class="home__link" to="/research">Research</RouterLink>
+        <RouterLink class="home__linkbtn" to="/credits">Credits</RouterLink>
+        <RouterLink class="home__linkbtn" to="/research">Research</RouterLink>
       </p>
     </header>
 
@@ -498,10 +497,13 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply text-muted text-base;
 }
 .home__links {
-  @apply text-muted text-xs;
+  @apply flex items-center gap-2 text-muted text-xs;
 }
-.home__link {
-  @apply text-accent underline;
+.home__linkbtn {
+  @apply inline-flex min-h-touch items-center rounded-lg border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_97%,white_3%)] px-3 text-fg transition-colors;
+}
+.home__linkbtn:hover {
+  @apply border-accent;
 }
 
 .home__footer {
