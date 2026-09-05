@@ -330,6 +330,40 @@ function createAudioEngine() {
     return totalMs
   }
 
+  /**
+   * Sleep Journey (appspec §10.2): a continuous descending ramp over normally
+   * 45 min — Beta→Alpha (16→9 Hz), Alpha→Theta (9→5 Hz), Theta→Delta (5→1.5 Hz),
+   * then fade the tones out over 180 s leaving brown noise to mask the room.
+   *
+   * Each stage is a single long linearRampToValueAtTime over its full
+   * duration (sleep-safe per §5.3). stageMs scales the default 45-min ramps.
+   */
+  function startSleepJourney(stageMs: [number, number, number], onEnd?: () => void): void {
+    if (!ctx || !oscR || !toneGain) return
+    const freq = oscR.frequency
+    let t = ctx.currentTime + 0.05
+    const beats: [number, number][] = [
+      [16, 9],
+      [9, 5],
+      [5, 1.5],
+    ]
+    freq.cancelScheduledValues(t)
+    freq.setValueAtTime(carrierHz + beats[0][0], t)
+    for (let i = 0; i < 3; i++) {
+      const [from, to] = beats[i]
+      const dur = stageMs[i] / 1000
+      freq.setValueAtTime(carrierHz + from, t)
+      freq.linearRampToValueAtTime(carrierHz + to, t + dur)
+      t += dur
+    }
+    // Stage 4: fade tones to 0 over 180 s (tones off, brown noise continues).
+    toneGain.gain.cancelScheduledValues(t)
+    toneGain.gain.setValueAtTime(targetToneGain, t)
+    toneGain.gain.linearRampToValueAtTime(0, t + 180)
+    const totalMs = stageMs.reduce((s, v) => s + v, 0) + 180000
+    if (onEnd) window.setTimeout(onEnd, totalMs + 500)
+  }
+
   function setToneGain(g: number) {
     targetToneGain = g
     if (status.value === 'playing' && toneGain) ramp(toneGain.gain, g, RAMP.toneGain)
@@ -431,6 +465,7 @@ function createAudioEngine() {
     setBand,
     setBeat,
     scheduleBeatPath,
+    startSleepJourney,
     setToneGain,
     setNoise,
     setNoiseGain,

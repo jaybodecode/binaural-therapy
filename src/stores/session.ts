@@ -100,8 +100,14 @@ export const useSessionStore = defineStore('session', () => {
     engine.setSpatial(spatial.value)
     engine.start()
 
-    // State-transition paths (Power Nap / Go-to-bed / Oscillate).
-    if (transitMode.value !== 'state-lock') {
+    // State-transition paths (Power Nap / Go-to-bed / Oscillate / Sleep Journey).
+    if (transitMode.value === 'sleep-journey') {
+      // Stage durations (ms) for a 45-min journey: 22% / 33% / 45%.
+      const s1 = Math.round(45 * 60000 * 0.22)
+      const s2 = Math.round(45 * 60000 * 0.33)
+      const s3 = Math.round(45 * 60000 * 0.45)
+      engine.startSleepJourney([s1, s2, s3])
+    } else if (transitMode.value !== 'state-lock') {
       const def = getTransit(transitMode.value)
       const steps = def.steps(effectiveBeat.value, currentBand.value.name)
       if (steps.some((s) => s.holdMs > 0)) {

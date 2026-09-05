@@ -1,4 +1,4 @@
-export type TransitMode = 'state-lock' | 'power-nap' | 'go-to-bed' | 'oscillate'
+export type TransitMode = 'state-lock' | 'power-nap' | 'go-to-bed' | 'oscillate' | 'sleep-journey'
 
 export interface TransitStep {
   beat: number
@@ -63,6 +63,13 @@ export const TRANSIT_MODES: TransitDef[] = [
       { beat: 8, holdMs: 2 * 60 * 1000, label: 'Theta' },
       { beat: 2, holdMs: 2 * 60 * 1000, label: 'Delta' },
     ],
+  },
+  {
+    id: 'sleep-journey',
+    label: 'Sleep journey',
+    description:
+      'Settle into bed over ~45 min: Beta → Alpha → Theta → Delta, then the tones fade away leaving only brown noise to mask the room.',
+    steps: () => [],
   },
 ]
 
