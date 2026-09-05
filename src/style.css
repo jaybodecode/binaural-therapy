@@ -43,6 +43,58 @@
     --color-accent-strong: #c98f4e;
   }
 
+  /* ── Visual styles ──────────────────────────────────────────────── */
+  /* Liquid-glass iOS: frosted translucent cards + vivid accents. */
+  html[data-style='glass'] {
+    --glow: rgba(110, 168, 255, 0.35);
+  }
+  html[data-style='glass'] body {
+    background-image:
+      radial-gradient(120% 60% at 50% -10%, rgba(110, 168, 255, 0.18), transparent 60%),
+      radial-gradient(100% 50% at 85% 110%, rgba(110, 168, 255, 0.12), transparent 55%);
+  }
+  html[data-style='glass'] .card {
+    background: rgba(22, 26, 34, 0.55) !important;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
+  }
+  html[data-style='glass'] .atmos-card,
+  html[data-style='glass'] .band-card,
+  html[data-style='glass'] .chip,
+  html[data-style='glass'] .transit-card {
+    background: rgba(22, 26, 34, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  /* Psychedelic: gradient background + saturated accents. */
+  html[data-style='psych'] {
+    --color-accent: #ff6ad5;
+    --color-accent-strong: #9b59ff;
+  }
+  html[data-style='psych'] body {
+    background-image: linear-gradient(135deg, #180a1f 0%, #2a0f3d 40%, #14234a 100%);
+  }
+  html[data-style='psych'] .card {
+    background: rgba(30, 18, 48, 0.6) !important;
+    border: 1px solid rgba(255, 106, 213, 0.25);
+    box-shadow: 0 0 24px rgba(155, 89, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  html[data-style='psych'] .atmos-card,
+  html[data-style='psych'] .band-card,
+  html[data-style='psych'] .chip,
+  html[data-style='psych'] .transit-card {
+    background: rgba(30, 18, 48, 0.55) !important;
+    border: 1px solid rgba(255, 106, 213, 0.2);
+  }
+
   html,
   body {
     @apply bg-bg text-fg;

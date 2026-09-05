@@ -458,6 +458,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Theme (at end) -->
     <section class="card" aria-labelledby="theme-heading">
       <h2 id="theme-heading" class="home__section-title">Theme</h2>
+      <p class="muted-note mb-1">Palette</p>
       <div class="chip-row">
         <button
           v-for="t in ['auto', 'dark', 'sepia-night'] as const"
@@ -468,6 +469,23 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
           @click="theme.set(t)"
         >
           {{ t === 'sepia-night' ? 'Sepia Night' : t[0].toUpperCase() + t.slice(1) }}
+        </button>
+      </div>
+      <p class="muted-note mb-1 mt-3">Style</p>
+      <div class="chip-row">
+        <button
+          v-for="s in [
+            ['classic', 'Classic'],
+            ['glass', 'Glass'],
+            ['psych', 'Psychedelic'],
+          ] as const"
+          :key="s[0]"
+          type="button"
+          class="chip"
+          :class="{ 'chip--active': theme.style === s[0] }"
+          @click="theme.setStyle(s[0])"
+        >
+          {{ s[1] }}
         </button>
       </div>
     </section>
