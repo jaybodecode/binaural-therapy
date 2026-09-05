@@ -1,10 +1,15 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session'
-import { BANDS, ATMOSPHERES } from '@/data/bands'
+import { usePresetsStore } from '@/stores/presets'
+import { useThemeStore } from '@/stores/theme'
+import { ATMOSPHERES, BANDS } from '@/data/bands'
 
 const session = useSessionStore()
+const presets = usePresetsStore()
+const theme = useThemeStore()
 const busy = ref(false)
+const presetName = ref('')
 
 async function begin() {
   if (busy.value) return
@@ -17,6 +22,49 @@ async function begin() {
     busy.value = false
   }
 }
+
+function savePreset() {
+  const name = presetName.value.trim() || currentAutoName.value
+  presets.add(name, {
+    band: session.band,
+    atmosphere: session.atmosphere,
+    toneGain: session.toneGain,
+    atmosphereGain: session.atmosphereGain,
+    beatHz: session.beatHz,
+  })
+  presetName.value = ''
+}
+
+function applyPreset(p: (typeof presets.presets)[number]) {
+  session.setBand(p.band)
+  session.setAtmosphere(p.atmosphere)
+  session.setToneGain(p.toneGain)
+  session.setAtmosphereGain(p.atmosphereGain)
+  if (p.beatHz != null) session.setBeat(p.beatHz)
+}
+
+const currentAutoName = computed(
+  () =>
+    `${session.currentBand.name} · ${session.atmosphere} · ${Math.round(session.toneGain * 100)}%`,
+)
+
+// URL-hash share: encode current state when requested.
+function shareLink() {
+  const qp = new URLSearchParams({
+    band: session.band,
+    atmos: session.atmosphere,
+    tg: String(session.toneGain),
+    ag: String(session.atmosphereGain),
+  })
+  if (session.beatHz != null) qp.set('beat', String(session.beatHz))
+  navigator.clipboard
+    .writeText(`${location.origin}${location.pathname}#${qp.toString()}`)
+    .then(() => console.log('copied share link'))
+    .catch(() => {})
+}
+
+const beatMax = computed(() => session.currentBand.beatRange[1])
+const beatMin = computed(() => session.currentBand.beatRange[0])
 </script>
 
 <template>
@@ -25,6 +73,23 @@ async function begin() {
       <h1 class="home__title">Binaural Therapy</h1>
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
     </header>
+
+    <!-- Theme -->
+    <section class="card" aria-labelledby="theme-heading">
+      <h2 id="theme-heading" class="visually-hidden">Theme</h2>
+      <div class="chip-row">
+        <button
+          v-for="t in ['auto', 'dark', 'sepia-night'] as const"
+          :key="t"
+          type="button"
+          class="chip"
+          :class="{ 'chip--active': theme.theme === t }"
+          @click="theme.set(t)"
+        >
+          {{ t === 'sepia-night' ? 'Sepia Night' : t[0].toUpperCase() + t.slice(1) }}
+        </button>
+      </div>
+    </section>
 
     <!-- Band selector -->
     <section class="card" aria-labelledby="band-heading">
@@ -66,6 +131,26 @@ async function begin() {
       </div>
     </section>
 
+    <!-- Beat slider -->
+    <section class="card" aria-labelledby="beat-heading">
+      <h2 id="beat-heading" class="home__section-title">Beat frequency</h2>
+      <div class="field">
+        <div class="field__label">
+          <span>{{ session.currentBand.name }} ({{ beatMin }}–{{ beatMax }} Hz)</span>
+          <output>{{ session.effectiveBeat.toFixed(1) }} Hz</output>
+        </div>
+        <input
+          type="range"
+          :min="beatMin"
+          :max="beatMax"
+          step="0.5"
+          :value="session.effectiveBeat"
+          class="slider"
+          @input="session.setBeat(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+    </section>
+
     <!-- Controls -->
     <section class="card" aria-labelledby="controls-heading">
       <h2 id="controls-heading" class="home__section-title">Controls</h2>
@@ -76,13 +161,12 @@ async function begin() {
           <output>{{ (session.toneGain * 100).toFixed(0) }}%</output>
         </div>
         <input
-          v-model.number="session.toneGain"
           type="range"
           min="0"
           max="1"
           step="0.01"
           class="slider"
-          aria-valuetext="{{ (session.toneGain * 100).toFixed(0) }} percent"
+          :value="session.toneGain"
           @input="session.setToneGain(Number(($event.target as HTMLInputElement).value))"
         />
       </div>
@@ -93,13 +177,12 @@ async function begin() {
           <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
         </div>
         <input
-          v-model.number="session.atmosphereGain"
           type="range"
           min="0"
           max="1"
           step="0.01"
           class="slider"
-          aria-valuetext="{{ (session.atmosphereGain * 100).toFixed(0) }} percent"
+          :value="session.atmosphereGain"
           @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
         />
       </div>
@@ -108,6 +191,62 @@ async function begin() {
         Carrier {{ session.currentBand.carrierHz }} Hz · Beat
         {{ session.effectiveBeat.toFixed(1) }} Hz
       </p>
+    </section>
+
+    <!-- Stereo check -->
+    <section class="card" aria-labelledby="stereo-heading">
+      <h2 id="stereo-heading" class="home__section-title">Headphone check</h2>
+      <p class="muted-note">Verify your headphones are on the correct ears (44 Hz ping).</p>
+      <div class="btn-row">
+        <button
+          type="button"
+          class="btn-secondary"
+          :disabled="!session.canPlay"
+          @click="session.pingChannel('left')"
+        >
+          Ping Left
+        </button>
+        <button
+          type="button"
+          class="btn-secondary"
+          :disabled="!session.canPlay"
+          @click="session.pingChannel('right')"
+        >
+          Ping Right
+        </button>
+      </div>
+    </section>
+
+    <!-- Presets -->
+    <section class="card" aria-labelledby="presets-heading">
+      <h2 id="presets-heading" class="home__section-title">Presets</h2>
+      <div class="preset-save">
+        <input
+          v-model="presetName"
+          type="text"
+          class="text-input"
+          :placeholder="currentAutoName"
+          aria-label="Preset name"
+        />
+        <button type="button" class="btn-secondary" @click="savePreset">Save</button>
+        <button type="button" class="btn-secondary" @click="shareLink">Share</button>
+      </div>
+      <ul v-if="presets.presets.length" class="preset-list">
+        <li v-for="p in presets.presets" :key="p.id" class="preset-item">
+          <button type="button" class="preset-item__load" @click="applyPreset(p)">
+            <span class="preset-item__name">{{ p.name }}</span>
+            <span class="preset-item__meta">{{ p.band }} · {{ p.atmosphere }}</span>
+          </button>
+          <button
+            type="button"
+            class="preset-item__del"
+            aria-label="Delete preset"
+            @click="presets.remove(p.id)"
+          >
+            ✕
+          </button>
+        </li>
+      </ul>
     </section>
 
     <!-- Primary CTA -->
@@ -142,10 +281,19 @@ async function begin() {
   @apply text-muted text-base;
 }
 .home__section-title {
-  @apply text-fg text-lg font-semibold mb-2;
+  @apply text-fg mb-2 text-lg font-semibold;
 }
 
-/* Band grid */
+.chip-row {
+  @apply flex flex-wrap gap-2;
+}
+.chip {
+  @apply rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] px-3 py-1 text-sm transition-colors;
+}
+.chip--active {
+  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] text-fg;
+}
+
 .band-grid {
   @apply grid grid-cols-5 gap-2;
 }
@@ -168,7 +316,6 @@ async function begin() {
   @apply text-muted mt-2 text-xs leading-relaxed;
 }
 
-/* Atmosphere grid */
 .atmos-grid {
   @apply grid grid-cols-2 gap-2;
 }
@@ -185,7 +332,6 @@ async function begin() {
   @apply text-muted text-xs leading-snug;
 }
 
-/* Sliders */
 .field {
   @apply mb-4 flex flex-col gap-1;
 }
@@ -200,6 +346,38 @@ async function begin() {
 }
 .muted-note {
   @apply text-muted mt-1 text-xs;
+}
+
+.btn-row {
+  @apply mt-2 flex gap-2;
+}
+.btn-row > button {
+  @apply flex-1;
+}
+
+.preset-save {
+  @apply flex gap-2;
+}
+.text-input {
+  @apply flex-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_20%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_97%,white_3%)] px-3 py-2 text-fg;
+}
+.preset-list {
+  @apply mt-2 flex list-none flex-col gap-1 p-0;
+}
+.preset-item {
+  @apply flex items-center gap-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_10%,transparent)] p-1;
+}
+.preset-item__load {
+  @apply flex flex-1 flex-col items-start px-2 py-1 text-left;
+}
+.preset-item__name {
+  @apply text-fg text-sm font-medium;
+}
+.preset-item__meta {
+  @apply text-muted text-xs;
+}
+.preset-item__del {
+  @apply px-2 text-muted;
 }
 
 .cta-wrap {

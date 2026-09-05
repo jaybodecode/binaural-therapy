@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import type { AtmosphereId, BandId } from '@/data/bands'
 import { ATMOSPHERES, getBand } from '@/data/bands'
-import { createAtmosphere, type AtmosphereEngine } from './noise'
+import { createAtmosphere, destroyAtmosphere, type AtmosphereEngine } from './noise'
 
 /**
  * Ramp durations per appspec §5.3.
@@ -195,13 +195,7 @@ function createAudioEngine() {
     if (atmosphere && atmosGain) ramp(atmosGain.gain, 0, RAMP.atmosphereGain)
     const prev = atmosphere
     setTimeout(() => {
-      if (prev) {
-        try {
-          prev.source.stop()
-        } catch {
-          /* already stopped */
-        }
-      }
+      if (prev) destroyAtmosphere(prev)
       atmosphere = createAtmosphere(ctx!, id)
       atmosphere.gain.connect(atmosGain!)
       if (status.value === 'playing' && atmosGain) {
@@ -209,6 +203,32 @@ function createAudioEngine() {
       }
     }, RAMP.atmosphereGain * 1000)
     currentAtmosphereId = id
+  }
+
+  /** Stereo-channel check (appspec §10 'stereo_check_utility'): a short
+   * 440 Hz tone panned hard to one ear so the user can verify channel
+   * isolation on headphones. */
+  function pingChannel(side: 'left' | 'right') {
+    if (!ctx || !toneGain) return
+    const osc = ctx.createOscillator()
+    const g = ctx.createGain()
+    const pan = ctx.createStereoPanner()
+    osc.type = 'sine'
+    osc.frequency.value = 440
+    pan.pan.value = side === 'left' ? -1 : 1
+    const now = ctx.currentTime
+    g.gain.setValueAtTime(0.0001, now)
+    g.gain.linearRampToValueAtTime(0.25, now + 0.05)
+    g.gain.setValueAtTime(0.25, now + 0.5)
+    g.gain.linearRampToValueAtTime(0.0001, now + 0.6)
+    osc.connect(pan).connect(g).connect(toneGain)
+    osc.start(now)
+    osc.stop(now + 0.65)
+    osc.addEventListener('ended', () => {
+      osc.disconnect()
+      g.disconnect()
+      pan.disconnect()
+    })
   }
 
   const atmosphereOptions = ATMOSPHERES.map((a) => a.id)
@@ -221,6 +241,7 @@ function createAudioEngine() {
     setBand,
     setBeat,
     setToneGain,
+    pingChannel,
     setAtmosphereGain,
     setAtmosphere,
     atmosphereOptions,

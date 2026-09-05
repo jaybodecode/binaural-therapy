@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { RouterView } from 'vue-router'
 import UpdateToast from '@/components/UpdateToast.vue'
+import { useThemeStore } from '@/stores/theme'
+
+// Initialize theme (applies data-theme on documentElement via the store).
+useThemeStore()
 </script>
 
 <template>

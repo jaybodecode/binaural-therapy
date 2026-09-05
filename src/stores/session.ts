@@ -70,6 +70,10 @@ export const useSessionStore = defineStore('session', () => {
     engine.stop()
   }
 
+  function pingChannel(side: 'left' | 'right') {
+    engine.pingChannel(side)
+  }
+
   async function unlockAndStart() {
     await engine.unlock()
     start()
@@ -115,5 +119,6 @@ export const useSessionStore = defineStore('session', () => {
     start,
     stop,
     unlockAndStart,
+    pingChannel,
   }
 })

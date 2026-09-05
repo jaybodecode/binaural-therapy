@@ -18,13 +18,13 @@ export interface Band {
   icon: string
 }
 
-export type AtmosphereId = 'pink' | 'brown'
+export type AtmosphereId = 'pink' | 'brown' | 'rain' | 'ocean'
 
 export interface Atmosphere {
   id: AtmosphereId
   label: string
-  /** Noise profile: 1/f (pink, -3 dB/oct) or 1/f^2 (brown, -6 dB/oct). */
-  profile: 'pink' | 'brown'
+  /** Synthesis profile. rain/pink/ocean/brown are all generated offline-capable. */
+  profile: 'pink' | 'brown' | 'rain' | 'ocean'
   description: string
 }
 
@@ -98,6 +98,18 @@ export const ATMOSPHERES: Atmosphere[] = [
     label: 'Brown Noise',
     profile: 'brown',
     description: '1/f² — deep, warm bass. Strong masking against environmental transients.',
+  },
+  {
+    id: 'rain',
+    label: 'Steady Rain',
+    profile: 'rain',
+    description: 'Pink-tilted hiss — steady rain bed. Comfortable, low fatigue.',
+  },
+  {
+    id: 'ocean',
+    label: 'Ocean Waves',
+    profile: 'ocean',
+    description: 'Brown surge with a ~0.1 Hz swell — mirrors respiratory RSA.',
   },
 ]
 

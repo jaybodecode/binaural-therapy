@@ -26,6 +26,21 @@
 @layer base {
   :root {
     color-scheme: dark;
+    --color-bg: #0b0d10;
+    --color-fg: #e8ebef;
+    --color-muted: #8a93a6;
+    --color-accent: #6ea8ff;
+    --color-accent-strong: #4a8aff;
+  }
+
+  /* Sepia "night" theme — warm, low-blue-light palette for pre-sleep use. */
+  html[data-theme='sepia-night'] {
+    color-scheme: dark;
+    --color-bg: #191510;
+    --color-fg: #ece4d8;
+    --color-muted: #a89a85;
+    --color-accent: #d8a96a;
+    --color-accent-strong: #c98f4e;
   }
 
   html,
