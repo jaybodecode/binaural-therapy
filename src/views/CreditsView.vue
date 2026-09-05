@@ -38,6 +38,32 @@
     </section>
 
     <section class="card mb-4">
+      <h2 class="text-lg font-semibold">Steady Rain</h2>
+      <ul class="mt-2 space-y-2 text-sm leading-relaxed">
+        <li>
+          <span class="font-medium">"Rain Loop"</span> by qubodup (Iwan Gabovitch)
+          <a
+            class="linkbtn"
+            href="https://freesound.org/people/qubodup/sounds/212580/"
+            target="_blank"
+            rel="noopener"
+          >
+            View on Freesound ↗
+          </a>
+          <span class="text-muted">· Licensed under CC BY 3.0</span>
+          <a
+            class="linkbtn"
+            href="https://creativecommons.org/licenses/by/3.0/"
+            target="_blank"
+            rel="noopener"
+          >
+            CC BY 3.0 ↗
+          </a>
+        </li>
+      </ul>
+    </section>
+
+    <section class="card mb-4">
       <h2 class="text-lg font-semibold">Synthesized sources</h2>
       <p class="text-muted mt-2 text-sm leading-relaxed">
         Pink noise (1/f), brown noise (1/f²), steady rain, and the ocean surge are generated

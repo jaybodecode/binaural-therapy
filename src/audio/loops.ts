@@ -1,13 +1,12 @@
 import type { Loop } from './loopCache'
 
 /**
- * Registry of optional sourced ambient loops (appspec §6.1).
+ * Registry of sourced ambient loops (appspec §6.1).
  *
- * These point at real Freesound candidates. Bundled previews are low-fi
- * (64–128 kbps) and carry CC-BY/CC0 attribution; the engine falls back to
- * offline-capable synth when a blob isn't present, so these are strictly an
- * enhancement. Add/replace `src` with a bundled asset under `/loops/*` to
- * upgrade quality.
+ * These point at loopable, iOS-compatible MP3s (44.1kHz, ~180–200kbps)
+ * bundled under /loops/*. Attribution lives in the Credits page (§6.5).
+ * The engine still falls back to offline-capable synth when a blob fails
+ * to load/decode, so a missing asset never breaks playback.
  */
 export const LOOP_REGISTRY: Record<string, Loop> = {
   ocean: {
