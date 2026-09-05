@@ -28,6 +28,9 @@ export const useSessionStore = defineStore('session', () => {
 
   const currentBand = computed(() => getBand(band.value))
 
+  /** The atmosphere that is locked to the current band by default. */
+  const lockedAtmosphere = computed(() => getBand(band.value).preferredAtmosphere)
+
   /** The beat frequency actually driving the engine: override or band default. */
   const effectiveBeat = computed(() => {
     const b = getBand(band.value)
@@ -117,6 +120,7 @@ export const useSessionStore = defineStore('session', () => {
     isPlaying,
     canPlay,
     currentBand,
+    lockedAtmosphere,
     effectiveBeat,
     setBand,
     setAtmosphere,

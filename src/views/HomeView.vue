@@ -3,13 +3,14 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { usePresetsStore } from '@/stores/presets'
 import { useThemeStore } from '@/stores/theme'
-import { ATMOSPHERES, BANDS } from '@/data/bands'
+import { ATMOSPHERES, BANDS, getBand } from '@/data/bands'
 
 const session = useSessionStore()
 const presets = usePresetsStore()
 const theme = useThemeStore()
 const busy = ref(false)
 const presetName = ref('')
+const showNamePrompt = ref(false)
 
 async function begin() {
   if (busy.value) return
@@ -23,7 +24,12 @@ async function begin() {
   }
 }
 
-function savePreset() {
+function openSavePrompt() {
+  presetName.value = ''
+  showNamePrompt.value = true
+}
+
+function confirmSave() {
   const name = presetName.value.trim() || currentAutoName.value
   presets.add(name, {
     band: session.band,
@@ -32,7 +38,11 @@ function savePreset() {
     atmosphereGain: session.atmosphereGain,
     beatHz: session.beatHz,
   })
-  presetName.value = ''
+  showNamePrompt.value = false
+}
+
+function cancelSave() {
+  showNamePrompt.value = false
 }
 
 function applyPreset(p: (typeof presets.presets)[number]) {
@@ -48,7 +58,6 @@ const currentAutoName = computed(
     `${session.currentBand.name} · ${session.atmosphere} · ${Math.round(session.toneGain * 100)}%`,
 )
 
-// URL-hash share: encode current state when requested.
 function shareLink() {
   const qp = new URLSearchParams({
     band: session.band,
@@ -65,6 +74,11 @@ function shareLink() {
 
 const beatMax = computed(() => session.currentBand.beatRange[1])
 const beatMin = computed(() => session.currentBand.beatRange[0])
+
+/** Noise-type atmospheres (settable, currently locked to band by default). */
+const noiseAtmos = ATMOSPHERES.filter((a) => a.kind === 'Noise')
+/** Background ambiences (rain/ocean). */
+const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
 </script>
 
 <template>
@@ -72,28 +86,17 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <header class="home__header">
       <h1 class="home__title">Binaural Therapy</h1>
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
+      <p class="home__links">
+        Sound off?
+        <RouterLink class="home__link" to="/credits">Credits</RouterLink>
+        ·
+        <RouterLink class="home__link" to="/research">Research</RouterLink>
+      </p>
     </header>
-
-    <!-- Theme -->
-    <section class="card" aria-labelledby="theme-heading">
-      <h2 id="theme-heading" class="visually-hidden">Theme</h2>
-      <div class="chip-row">
-        <button
-          v-for="t in ['auto', 'dark', 'sepia-night'] as const"
-          :key="t"
-          type="button"
-          class="chip"
-          :class="{ 'chip--active': theme.theme === t }"
-          @click="theme.set(t)"
-        >
-          {{ t === 'sepia-night' ? 'Sepia Night' : t[0].toUpperCase() + t.slice(1) }}
-        </button>
-      </div>
-    </section>
 
     <!-- Band selector -->
     <section class="card" aria-labelledby="band-heading">
-      <h2 id="band-heading" class="visually-hidden">Choose a brainwave band</h2>
+      <h2 id="band-heading" class="home__section-title">Target state</h2>
       <div class="band-grid">
         <button
           v-for="b in BANDS"
@@ -109,15 +112,87 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
           <span class="band-card__range">{{ b.beatRange[0] }}–{{ b.beatRange[1] }} Hz</span>
         </button>
       </div>
-      <p class="band-note">{{ session.currentBand.note }}</p>
+      <p class="band-note">{{ session.currentBand.description }}</p>
+      <p class="band-lock">
+        Uses
+        <strong>{{ getBand(session.band).preferredAtmosphere }} noise</strong> + beat
+        {{ session.effectiveBeat.toFixed(1) }} Hz
+      </p>
     </section>
 
-    <!-- Atmosphere picker -->
-    <section class="card" aria-labelledby="atmos-heading">
-      <h2 id="atmos-heading" class="home__section-title">Background</h2>
+    <!-- Volume: Entrainment tone -->
+    <section class="card" aria-labelledby="tone-vol-heading">
+      <h2 id="tone-vol-heading" class="home__section-title">Tone volume</h2>
+      <div class="field">
+        <div class="field__label">
+          <span>Entrainment tone level</span>
+          <output>{{ (session.toneGain * 100).toFixed(0) }}%</output>
+        </div>
+        <input
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          class="slider"
+          :value="session.toneGain"
+          @input="session.setToneGain(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+    </section>
+
+    <!-- Noise (brown/pink) — locked to band by default -->
+    <section class="card" aria-labelledby="noise-heading">
+      <h2 id="noise-heading" class="home__section-title">
+        Noise <span class="heading-tag">matched to your state</span>
+      </h2>
       <div class="atmos-grid">
         <button
-          v-for="a in ATMOSPHERES"
+          v-for="a in noiseAtmos"
+          :key="a.id"
+          type="button"
+          class="atmos-card"
+          :class="{
+            'atmos-card--active': session.atmosphere === a.id,
+            'atmos-card--locked': session.atmosphere !== a.id,
+          }"
+          :aria-pressed="session.atmosphere === a.id"
+          @click="session.setAtmosphere(a.id)"
+        >
+          <span class="atmos-card__label">{{ a.label }}</span>
+          <span class="atmos-card__desc">{{ a.description }}</span>
+        </button>
+      </div>
+      <p class="muted-note">
+        {{
+          session.atmosphere === session.lockedAtmosphere
+            ? `Auto-set to ${getBand(session.band).preferredAtmosphere} for ${session.currentBand.name}.`
+            : `Using ${session.atmosphere} (overridden).`
+        }}
+      </p>
+      <div class="field mt-2">
+        <div class="field__label">
+          <span>Noise volume</span>
+          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
+        </div>
+        <input
+          v-if="session.atmosphereGain >= 0 && session.atmosphereGain <= 1"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          class="slider"
+          :value="session.atmosphereGain"
+          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+    </section>
+
+    <!-- Background ambiences (rain/ocean) -->
+    <section class="card" aria-labelledby="background-heading">
+      <h2 id="background-heading" class="home__section-title">Background ambience</h2>
+      <div class="atmos-grid">
+        <button
+          v-for="a in backgroundAtmos"
           :key="a.id"
           type="button"
           class="atmos-card"
@@ -129,13 +204,53 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
           <span class="atmos-card__desc">{{ a.description }}</span>
         </button>
       </div>
+      <p class="muted-note">
+        Selecting a background ambient overrides the locked noise while active.
+      </p>
+      <div class="field mt-2">
+        <div class="field__label">
+          <span>Background volume</span>
+          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
+        </div>
+        <input
+          v-if="session.atmosphereGain >= 0 && session.atmosphereGain <= 1"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          class="slider"
+          :value="session.atmosphereGain"
+          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+    </section>
+
+    <!-- Beat slider -->
+    <section class="card" aria-labelledby="beat-heading">
+      <h2 id="beat-heading" class="home__section-title">Beat frequency</h2>
+      <div class="field">
+        <div class="field__label">
+          <span>{{ session.currentBand.name }} ({{ beatMin }}–{{ beatMax }} Hz)</span>
+          <output>{{ session.effectiveBeat.toFixed(1) }} Hz</output>
+        </div>
+        <input
+          type="range"
+          :min="beatMin"
+          :max="beatMax"
+          step="0.5"
+          :value="session.effectiveBeat"
+          class="slider"
+          @input="session.setBeat(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+      <p class="muted-note">Micro-tuning of the binaural beat inside your chosen state.</p>
     </section>
 
     <!-- Spatial / Surround (PannerMode) -->
     <section class="card" aria-labelledby="spatial-heading">
       <h2 id="spatial-heading" class="home__section-title">Ambient space</h2>
       <p class="muted-note">
-        Place the background sound around your head (use headphones). The binaural tone itself stays
+        Spread the background sound around your head (use headphones). The binaural tone stays
         safely hard-panned.
       </p>
       <div class="chip-row mt-2">
@@ -230,72 +345,13 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       </div>
     </section>
 
-    <!-- Beat slider -->
-    <section class="card" aria-labelledby="beat-heading">
-      <h2 id="beat-heading" class="home__section-title">Beat frequency</h2>
-      <div class="field">
-        <div class="field__label">
-          <span>{{ session.currentBand.name }} ({{ beatMin }}–{{ beatMax }} Hz)</span>
-          <output>{{ session.effectiveBeat.toFixed(1) }} Hz</output>
-        </div>
-        <input
-          type="range"
-          :min="beatMin"
-          :max="beatMax"
-          step="0.5"
-          :value="session.effectiveBeat"
-          class="slider"
-          @input="session.setBeat(Number(($event.target as HTMLInputElement).value))"
-        />
-      </div>
-    </section>
-
-    <!-- Controls -->
-    <section class="card" aria-labelledby="controls-heading">
-      <h2 id="controls-heading" class="home__section-title">Controls</h2>
-
-      <div class="field">
-        <div class="field__label">
-          <span>Entrainment tone level</span>
-          <output>{{ (session.toneGain * 100).toFixed(0) }}%</output>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          class="slider"
-          :value="session.toneGain"
-          @input="session.setToneGain(Number(($event.target as HTMLInputElement).value))"
-        />
-      </div>
-
-      <div class="field">
-        <div class="field__label">
-          <span>Background atmosphere level</span>
-          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
-        </div>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          class="slider"
-          :value="session.atmosphereGain"
-          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
-        />
-      </div>
-
-      <p class="muted-note">
-        Carrier {{ session.currentBand.carrierHz }} Hz · Beat
-        {{ session.effectiveBeat.toFixed(1) }} Hz
-      </p>
-    </section>
-
-    <!-- Stereo check -->
+    <!-- Headphone check -->
     <section class="card" aria-labelledby="stereo-heading">
       <h2 id="stereo-heading" class="home__section-title">Headphone check</h2>
-      <p class="muted-note">Verify your headphones are on the correct ears (44 Hz ping).</p>
+      <p class="muted-note">
+        You need headphones for binaural beats to work. One ear must not hear the speaker of the
+        other ear.
+      </p>
       <div class="btn-row">
         <button
           type="button"
@@ -319,17 +375,29 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Presets -->
     <section class="card" aria-labelledby="presets-heading">
       <h2 id="presets-heading" class="home__section-title">Presets</h2>
+      <p class="muted-note">Current: {{ currentAutoName }}</p>
       <div class="preset-save">
+        <button type="button" class="btn-secondary flex-1" @click="openSavePrompt">
+          Save current
+        </button>
+        <button type="button" class="btn-secondary" @click="shareLink">Share</button>
+      </div>
+
+      <form v-if="showNamePrompt" class="preset-name-form" @submit.prevent="confirmSave">
         <input
           v-model="presetName"
           type="text"
           class="text-input"
           :placeholder="currentAutoName"
           aria-label="Preset name"
+          autofocus
         />
-        <button type="button" class="btn-secondary" @click="savePreset">Save</button>
-        <button type="button" class="btn-secondary" @click="shareLink">Share</button>
-      </div>
+        <div class="preset-name-actions">
+          <button type="submit" class="btn-primary">Save</button>
+          <button type="button" class="btn-secondary" @click="cancelSave">Cancel</button>
+        </div>
+      </form>
+
       <ul v-if="presets.presets.length" class="preset-list">
         <li v-for="p in presets.presets" :key="p.id" class="preset-item">
           <button type="button" class="preset-item__load" @click="applyPreset(p)">
@@ -346,6 +414,23 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
           </button>
         </li>
       </ul>
+    </section>
+
+    <!-- Theme (at end) -->
+    <section class="card" aria-labelledby="theme-heading">
+      <h2 id="theme-heading" class="home__section-title">Theme</h2>
+      <div class="chip-row">
+        <button
+          v-for="t in ['auto', 'dark', 'sepia-night'] as const"
+          :key="t"
+          type="button"
+          class="chip"
+          :class="{ 'chip--active': theme.theme === t }"
+          @click="theme.set(t)"
+        >
+          {{ t === 'sepia-night' ? 'Sepia Night' : t[0].toUpperCase() + t.slice(1) }}
+        </button>
+      </div>
     </section>
 
     <!-- Primary CTA -->
@@ -379,18 +464,17 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
 .home__subtitle {
   @apply text-muted text-base;
 }
+.home__links {
+  @apply text-muted text-xs;
+}
+.home__link {
+  @apply text-accent underline;
+}
 .home__section-title {
   @apply text-fg mb-2 text-lg font-semibold;
 }
-
-.chip-row {
-  @apply flex flex-wrap gap-2;
-}
-.chip {
-  @apply rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] px-3 py-1 text-sm transition-colors;
-}
-.chip--active {
-  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] text-fg;
+.heading-tag {
+  @apply text-muted text-xs font-normal;
 }
 
 .band-grid {
@@ -412,7 +496,10 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply text-muted text-[0.7rem];
 }
 .band-note {
-  @apply text-muted mt-2 text-xs leading-relaxed;
+  @apply text-fg mt-2 text-sm leading-relaxed;
+}
+.band-lock {
+  @apply text-muted mt-1 text-xs;
 }
 
 .atmos-grid {
@@ -423,6 +510,9 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
 }
 .atmos-card--active {
   @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+}
+.atmos-card--locked {
+  opacity: 0.5;
 }
 .atmos-card__label {
   @apply text-fg text-sm font-semibold;
@@ -447,6 +537,16 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply text-muted mt-1 text-xs;
 }
 
+.chip-row {
+  @apply flex flex-wrap gap-2;
+}
+.chip {
+  @apply rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] px-3 py-1 text-sm transition-colors;
+}
+.chip--active {
+  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] text-fg;
+}
+
 .btn-row {
   @apply mt-2 flex gap-2;
 }
@@ -455,6 +555,12 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
 }
 
 .preset-save {
+  @apply flex gap-2;
+}
+.preset-name-form {
+  @apply mt-2 flex flex-col gap-2;
+}
+.preset-name-actions {
   @apply flex gap-2;
 }
 .text-input {

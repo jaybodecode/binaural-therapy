@@ -9,12 +9,10 @@ export interface Band {
   defaultBeatHz: number
   /** Fixed carrier frequency (Hz) — stays in Oster's 200–500 Hz window. */
   carrierHz: number
-  /** Target cognitive state copy. */
-  target: string
-  /** Preferred noise profile id. */
+  /** Functional description — what this state is good for (no citations). */
+  description: string
+  /** Preferred atmosphere id; stays locked while this band is active. */
   preferredAtmosphere: AtmosphereId
-  /** One-sentence evidence note (from appspec §3). */
-  note: string
   icon: string
 }
 
@@ -26,6 +24,8 @@ export interface Atmosphere {
   /** Synthesis profile. rain/pink/ocean/brown are all generated offline-capable. */
   profile: 'pink' | 'brown' | 'rain' | 'ocean'
   description: string
+  /** Short human label for the noise-type picker. */
+  kind: string
 }
 
 export const BANDS: Band[] = [
@@ -35,9 +35,8 @@ export const BANDS: Band[] = [
     beatRange: [0.5, 4.0],
     defaultBeatHz: 2.0,
     carrierHz: 160,
-    target: 'Deep slow-wave sleep, restoration',
+    description: 'Deep sleep — slow, heavy waves for falling into deep sleep and staying there.',
     preferredAtmosphere: 'brown',
-    note: 'Drives slow-wave amplitude; matches Papalambros 2017 (closed-loop PLL not replicated).',
     icon: '🌒',
   },
   {
@@ -46,9 +45,9 @@ export const BANDS: Band[] = [
     beatRange: [4.0, 8.0],
     defaultBeatHz: 6.0,
     carrierHz: 210,
-    target: 'Hypnagogia, deep relaxation, meditation',
+    description:
+      'Dreaming & meditation — the drifting, dreamy space before sleep and in deep meditation.',
     preferredAtmosphere: 'brown',
-    note: 'Hypnagogic state; lowest carrier to keep the beat audible.',
     icon: '🌊',
   },
   {
@@ -57,9 +56,9 @@ export const BANDS: Band[] = [
     beatRange: [8.0, 13.0],
     defaultBeatHz: 10.0,
     carrierHz: 240,
-    target: 'Calm focus, wakeful relaxation',
+    description:
+      'Relaxed focus — calm, clear, wakeful relaxation; good for reading or easing anxiety.',
     preferredAtmosphere: 'pink',
-    note: 'Bridges alertness and calm; most-studied in pre-operative anxiety.',
     icon: '🌿',
   },
   {
@@ -68,9 +67,8 @@ export const BANDS: Band[] = [
     beatRange: [14.0, 30.0],
     defaultBeatHz: 18.0,
     carrierHz: 300,
-    target: 'Active concentration, working memory',
+    description: 'Active focus — alert, analytical, on-task concentration for work or study.',
     preferredAtmosphere: 'pink',
-    note: 'Increases vigilance; use sparingly — sustained beta can be arousing.',
     icon: '⚡',
   },
   {
@@ -79,37 +77,40 @@ export const BANDS: Band[] = [
     beatRange: [30.0, 50.0],
     defaultBeatHz: 40.0,
     carrierHz: 320,
-    target: 'Information synthesis, exploratory',
+    description: 'Peak focus — sharp, integrative attention for deep problem-solving.',
     preferredAtmosphere: 'pink',
-    note: '40 Hz is the Adaikkan GENUS frequency — preclinical only.',
     icon: '🔆',
   },
 ]
 
 export const ATMOSPHERES: Atmosphere[] = [
   {
-    id: 'pink',
-    label: 'Pink Noise',
-    profile: 'pink',
-    description: '1/f spectrum — matches resting EEG scaling. Neutral, minimal arousal.',
-  },
-  {
     id: 'brown',
     label: 'Brown Noise',
     profile: 'brown',
-    description: '1/f² — deep, warm bass. Strong masking against environmental transients.',
+    kind: 'Noise',
+    description: 'Deep, warm bass rumble — strong masking, great for sleep.',
+  },
+  {
+    id: 'pink',
+    label: 'Pink Noise',
+    profile: 'pink',
+    kind: 'Noise',
+    description: 'Balanced, gentle white-ish hiss — low fatigue, good for focus.',
   },
   {
     id: 'rain',
     label: 'Steady Rain',
     profile: 'rain',
-    description: 'Pink-tilted hiss — steady rain bed. Comfortable, low fatigue.',
+    kind: 'Background',
+    description: 'Soft, steady rain bed — comfortable and calming.',
   },
   {
     id: 'ocean',
     label: 'Ocean Waves',
     profile: 'ocean',
-    description: 'Brown surge with a ~0.1 Hz swell — mirrors respiratory RSA.',
+    kind: 'Background',
+    description: 'Slow ocean swell with a gentle rhythm.',
   },
 ]
 
