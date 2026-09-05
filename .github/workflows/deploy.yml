@@ -40,8 +40,11 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Generate PWA icons
-        run: npm run pwa:generate-icons
+      # PWA icons are pre-generated via `npm run pwa:generate-icons` and
+      # committed to the repo. We skip the generator here because it uses
+      # Puppeteer (headless Chrome) which crashes on GH Actions Ubuntu
+      # runners due to sandboxing. Re-generate locally and commit when
+      # public/pwa-icon.svg changes.
 
       - name: Build
         run: npm run build
