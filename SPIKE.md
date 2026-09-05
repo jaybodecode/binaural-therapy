@@ -12,7 +12,17 @@
 
 ## Run it
 
-### Option A — local dev server (recommended)
+### Option A — GitHub Pages (live, recommended for iPhone test)
+
+The spike is deployed to GH Pages and reachable at:
+
+**https://jaybodecode.github.io/binaural-therapy/spike-audio.html**
+
+This is the **best URL to test on your iPhone** — it has HTTPS (required for Service Workers), runs in the production-equivalent PWA environment, and survives lock screen / backgrounding exactly as users will see it. Add to Home Screen from this URL.
+
+The root URL `https://jaybodecode.github.io/binaural-therapy/` serves the M0 placeholder StartGate (appspec §15 M0 done).
+
+### Option B — local dev server
 
 ```sh
 cd ~/GitHub/jaybodecode/binaural-therapy
@@ -20,11 +30,11 @@ npm run dev
 # open http://localhost:5173/spike-audio.html
 ```
 
-Vite serves `public/` at the site root, so the URL is `/spike-audio.html`.
+Vite serves `public/` at the site root, so the URL is `/spike-audio.html`. Use this when iterating on the spike code — edits reflect on reload in <1 s. Note: HTTP (no TLS), so the Service Worker path won't be exercised; everything else (audio, MediaSession, audioSession, visibilitychange) works.
 
-### Option B — open the file directly
+### Option C — open the file directly
 
-`public/spike-audio.html` is fully self-contained. You can open it with `file://` in Safari, **but** Safari blocks some features on `file://` (e.g. Service Workers, in some versions). For the most realistic iOS test use Option A over your local network, or deploy to GH Pages and test against the real URL.
+`public/spike-audio.html` is fully self-contained. You can open it with `file://` in Safari, **but** Safari blocks some features on `file://` (e.g. Service Workers, in some versions). For the most realistic iOS test use Option A.
 
 ## Test on iPhone
 
