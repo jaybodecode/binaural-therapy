@@ -59,8 +59,8 @@ onMounted(() => {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  background-color: rgb(var(--color-bg));
-  color: rgb(var(--color-fg));
+  background-color: var(--color-bg);
+  color: var(--color-fg);
   font-family: var(--font-system);
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -77,7 +77,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: rgb(var(--color-bg));
+  background-color: var(--color-bg);
   transition: opacity 0.5s ease;
 }
 .splash--fading {
@@ -92,7 +92,7 @@ onMounted(() => {
 .splash__tag {
   margin: 0;
   font-size: 0.8rem;
-  color: rgb(var(--color-muted));
+  color: var(--color-muted);
 }
 .splash-enter-active {
   transition: opacity 0.2s ease;

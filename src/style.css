@@ -33,8 +33,8 @@
     --color-accent-strong: #4a8aff;
   }
 
-  /* Day palette — light, crisp glass. */
-  html[data-theme='day'] {
+  /* White palette — light, crisp glass. */
+  html[data-theme='white'] {
     color-scheme: light;
     --color-bg: #eef1f6;
     --color-fg: #16191f;

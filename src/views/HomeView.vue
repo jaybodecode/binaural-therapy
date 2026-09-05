@@ -468,7 +468,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       <h2 id="theme-heading" class="home__section-title">Theme</h2>
       <div class="chip-row">
         <button
-          v-for="t in ['auto', 'night', 'sepia'] as const"
+          v-for="t in ['dark', 'white', 'sepia'] as const"
           :key="t"
           type="button"
           class="chip"

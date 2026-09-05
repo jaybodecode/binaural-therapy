@@ -80,7 +80,7 @@ onMounted(() => {
   width: 100%;
   max-width: 26rem;
   border-radius: 1.25rem;
-  background: rgb(var(--color-bg));
+  background: var(--color-bg);
   border: 1px solid color-mix(in oklab, var(--color-fg) 14%, transparent);
   padding: 1.25rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);

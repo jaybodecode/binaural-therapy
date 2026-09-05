@@ -1,48 +1,41 @@
 import { defineStore } from 'pinia'
 import { onMounted, ref, watch } from 'vue'
 
-export type Theme = 'auto' | 'night' | 'sepia'
+export type Theme = 'dark' | 'white' | 'sepia'
 
 const KEY = 'bt:theme:v1'
 
 function readTheme(): Theme {
   try {
     const v = localStorage.getItem(KEY) as Theme | null
-    return v === 'night' || v === 'sepia' || v === 'auto' ? v : 'auto'
+    return v === 'dark' || v === 'white' || v === 'sepia' ? v : 'dark'
   } catch {
-    return 'auto'
+    return 'dark'
   }
 }
 
 /** Apply palette via a data attribute + color-scheme on the document root.
- * The visual style is always Glass (liquid-glass iOS); only the palette varies. */
-function apply(theme: Theme, systemDark: boolean): void {
+ * The visual style is always Glass (liquid-glass iOS); only the palette varies.
+ * Dark is the default; White is the light crisp glass; Sepia is warm/pre-sleep. */
+function apply(theme: Theme): void {
   const el = document.documentElement
   el.dataset.style = 'glass'
-  // Resolve 'auto' to night (dark) or day (light) following the phone profile.
-  const resolved = theme === 'auto' ? (systemDark ? 'night' : 'day') : theme
-  el.dataset.theme = resolved
-  el.style.colorScheme = resolved === 'day' ? 'light' : 'dark'
+  el.dataset.theme = theme
+  el.style.colorScheme = theme === 'white' ? 'light' : 'dark'
 
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) {
     meta.setAttribute(
       'content',
-      resolved === 'sepia' ? '#1c1712' : resolved === 'night' ? '#11141c' : '#e8ecf2',
+      theme === 'sepia' ? '#1c1712' : theme === 'dark' ? '#11141c' : '#eef1f6',
     )
   }
 }
 
 export const useThemeStore = defineStore('theme', () => {
   const theme = ref<Theme>(readTheme())
-  let mq: MediaQueryList | null = null
 
-  const systemDark = (): boolean => mq?.matches ?? true
-
-  onMounted(() => {
-    mq = window.matchMedia('(prefers-color-scheme: dark)')
-    apply(theme.value, systemDark())
-  })
+  onMounted(() => apply(theme.value))
 
   function set(next: Theme) {
     theme.value = next
@@ -51,10 +44,10 @@ export const useThemeStore = defineStore('theme', () => {
     } catch {
       /* ignore */
     }
-    apply(next, systemDark())
+    apply(next)
   }
 
-  watch(theme, (t) => apply(t, systemDark()))
+  watch(theme, (t) => apply(t))
 
   return { theme, set }
 })
