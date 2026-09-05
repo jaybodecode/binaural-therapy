@@ -1,10 +1,12 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { getBand, type BackgroundId, type BandId, type NoiseId } from '@/data/bands'
+import { getBand, type BackgroundId, type BandId, type NoiseId, BANDS } from '@/data/bands'
 import { useAudioEngine } from '@/audio/engine'
 import type { SpatialConfig } from '@/audio/panning'
 import { getTransit, type TransitMode } from '@/data/transitions'
 import { loadSettings, saveSettings } from './settings'
+
+const BAND_IDS = BANDS.map((b) => b.id)
 
 /**
  * Session store. Owns the user-visible state (band, tone gain, noise layer,
@@ -26,6 +28,32 @@ export const useSessionStore = defineStore('session', () => {
   const backgroundGain = ref(persisted.backgroundGain)
   const spatial = ref<SpatialConfig>({ ...persisted.spatial })
   const transitMode = ref<TransitMode>(persisted.transitMode ?? 'state-lock')
+
+  /**
+   * Ambient-space (HRTF spatial audio) needs PannerNode + HRTF support and is
+   * headphone-dependent. Feature-detect rather than assume.
+   */
+  const spatialSupported = computed(() => {
+    if (typeof window === 'undefined') return false
+    try {
+      const Ctor = (window as any).AudioContext || (window as any).webkitAudioContext
+      if (!Ctor) return false
+      const a = new Ctor()
+      const p =
+        typeof a.createPanner === 'function'
+          ? a.createPanner()
+          : (window as any).webkitAudioContext?.createPanner?.call(a)
+      const ok = !!p && typeof p.setPosition === 'function'
+      try {
+        a.close()
+      } catch {
+        /* ignore */
+      }
+      return ok
+    } catch {
+      return false
+    }
+  })
 
   const isPlaying = computed(() => engine.status.value === 'playing')
   const canPlay = computed(() => engine.status.value !== 'idle')
@@ -129,6 +157,41 @@ export const useSessionStore = defineStore('session', () => {
     engine.pingChannel(side)
   }
 
+  /** Read preset parameters from the URL hash and apply them on load. */
+  function applyUrlParams(): void {
+    const hash = typeof window !== 'undefined' ? window.location.hash : ''
+    const query = new URLSearchParams(hash.replace(/^#/, ''))
+    const bandId = query.get('band') as BandId | null
+    if (bandId && BAND_IDS.includes(bandId)) setBand(bandId)
+    const noiseId = query.get('noise')
+    if (noiseId === 'pink' || noiseId === 'brown') setNoise(noiseId)
+    const bg = query.get('bg')
+    if (bg === 'rain' || bg === 'ocean' || bg === 'none') setBackground(bg)
+    const beat = query.get('beat')
+    if (beat !== null) {
+      const b = Number(beat)
+      if (!Number.isNaN(b)) setBeat(b)
+    }
+    const tg = query.get('tg')
+    if (tg !== null) {
+      const g = Number(tg)
+      if (!Number.isNaN(g)) setToneGain(Math.min(1, Math.max(0, g)))
+    }
+    const mode = query.get('mode') as TransitMode | null
+    if (mode) setTransitMode(mode)
+  }
+
+  /** Build a shareable URL encoding the current session state. */
+  function buildShareUrl(): string {
+    const qp = new URLSearchParams({ band: band.value })
+    if (noise.value) qp.set('noise', noise.value)
+    qp.set('bg', background.value)
+    if (beatHz.value != null) qp.set('beat', String(beatHz.value))
+    if (transitMode.value !== 'state-lock') qp.set('mode', transitMode.value)
+    const base = typeof window !== 'undefined' ? window.location.origin : ''
+    return `${base}${typeof window !== 'undefined' ? window.location.pathname : '/'}#${qp.toString()}`
+  }
+
   watch(
     [band, beatHz, toneGain, noise, noiseGain, background, backgroundGain, spatial, transitMode],
     () => {
@@ -163,6 +226,7 @@ export const useSessionStore = defineStore('session', () => {
     currentBand,
     lockedNoise,
     effectiveBeat,
+    spatialSupported,
     setBand,
     setNoise,
     setBackground,
@@ -176,5 +240,7 @@ export const useSessionStore = defineStore('session', () => {
     stop,
     unlockAndStart,
     pingChannel,
+    applyUrlParams,
+    buildShareUrl,
   }
 })

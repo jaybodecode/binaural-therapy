@@ -66,17 +66,30 @@ const currentAutoName = computed(
 )
 
 function shareLink() {
-  const qp = new URLSearchParams({
-    band: session.band,
-    noise: session.noise,
-    bg: session.background === 'none' ? '' : session.background,
-    tg: String(session.toneGain),
-  })
-  if (session.beatHz != null) qp.set('beat', String(session.beatHz))
-  navigator.clipboard
-    .writeText(`${location.origin}${location.pathname}#${qp.toString()}`)
-    .then(() => console.log('copied share link'))
-    .catch(() => {})
+  const url = session.buildShareUrl()
+  const title = `Aura — ${session.currentBand.name} preset`
+  const text = `Listen to this Aura preset: ${session.currentBand.name.toLowerCase()} with ${
+    session.noise
+  } noise. Tap to open:`
+  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+
+  if (canShare) {
+    navigator
+      .share({ title, text, url })
+      .then(() => console.log('shared'))
+      .catch(() => {})
+  } else {
+    // Fallback: copy to clipboard + open mailto with prefilled body.
+    navigator.clipboard
+      .writeText(url)
+      .then(() => {
+        const mailto = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(
+          `${text}\n${url}`,
+        )}`
+        window.open(mailto, '_self')
+      })
+      .catch(() => {})
+  }
 }
 
 const beatMax = computed(() => session.currentBand.beatRange[1])
@@ -283,7 +296,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     </section>
 
     <!-- Spatial / Surround (PannerMode) -->
-    <section class="card" aria-labelledby="spatial-heading">
+    <section v-if="session.spatialSupported" class="card" aria-labelledby="spatial-heading">
       <h2 id="spatial-heading" class="home__section-title">Ambient space</h2>
       <p class="muted-note">
         Spread the noise &amp; background sound around your head (use headphones). The binaural tone

@@ -3,17 +3,22 @@ import { onMounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
 import UpdateToast from '@/components/UpdateToast.vue'
 import AuraLogo from '@/components/AuraLogo.vue'
+import InstallPrompt from '@/components/InstallPrompt.vue'
 import { useThemeStore } from '@/stores/theme'
+import { useSessionStore } from '@/stores/session'
 
 // Initialize theme (applies data-theme on documentElement via the store).
 useThemeStore()
 
+const session = useSessionStore()
 const showSplash = ref(false)
 const splashFading = ref(false)
 
 onMounted(() => {
+  // Apply any shared presets from the URL hash (e.g. #band=alpha&noise=pink…).
+  session.applyUrlParams()
+
   showSplash.value = true
-  // Fade out after a beat, then unmount.
   window.setTimeout(() => {
     splashFading.value = true
   }, 1200)
@@ -27,6 +32,7 @@ onMounted(() => {
   <div class="app-shell">
     <RouterView />
     <UpdateToast />
+    <InstallPrompt />
 
     <!-- Startup splash: animated Aura logo -->
     <Transition name="splash">
