@@ -285,7 +285,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Spatial / Surround (PannerMode) -->
     <section class="card" aria-labelledby="spatial-heading">
       <h2 id="spatial-heading" class="home__section-title">Ambient space</h2>
-<p class="muted-note">
+      <p class="muted-note">
         Spread the noise &amp; background sound around your head (use headphones). The binaural tone
         stays safely hard-panned. Pick Surround or Drift, then play — you'll hear the ambience move.
       </p>
