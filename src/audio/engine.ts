@@ -473,6 +473,34 @@ function createAudioEngine() {
     })
   }
 
+  /** Soft ascending two-chime intro wound on boot — a gentle glissando that
+   * mirrors the Aura/binaural motif. Requires an unlocked context (user tap). */
+  function playIntro() {
+    if (!ctx) return
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+    const now = ctx.currentTime
+    const notes = [523.25, 659.25, 783.99] // C5, E5, G5 — soft major arpeggio
+    const start = now + 0.05
+    notes.forEach((freq, i) => {
+      const osc = ctx!.createOscillator()
+      const g = ctx!.createGain()
+      osc.type = 'sine'
+      osc.frequency.value = freq
+      const tOn = start + i * 0.18
+      const tOff = tOn + 0.7
+      g.gain.setValueAtTime(0.0001, tOn)
+      g.gain.exponentialRampToValueAtTime(0.11, tOn + 0.03)
+      g.gain.exponentialRampToValueAtTime(0.0001, tOff)
+      osc.connect(g).connect(ctx!.destination)
+      osc.start(tOn)
+      osc.stop(tOff + 0.02)
+      osc.addEventListener('ended', () => {
+        osc.disconnect()
+        g.disconnect()
+      })
+    })
+  }
+
   return {
     status,
     spatialMode,
@@ -492,6 +520,7 @@ function createAudioEngine() {
     setBgGain,
     setSpatial,
     pingChannel,
+    playIntro,
   }
 }
 

@@ -6,13 +6,23 @@ import AuraLogo from '@/components/AuraLogo.vue'
 import InstallPrompt from '@/components/InstallPrompt.vue'
 import { useThemeStore } from '@/stores/theme'
 import { useSessionStore } from '@/stores/session'
+import { useAudioEngine } from '@/audio/engine'
 
 // Initialize theme (applies data-theme on documentElement via the store).
 useThemeStore()
 
 const session = useSessionStore()
+const engine = useAudioEngine()
 const showSplash = ref(false)
 const splashFading = ref(false)
+
+let introPlayed = false
+function playIntroOnFirstTap() {
+  if (introPlayed) return
+  introPlayed = true
+  engine.unlock()
+  engine.playIntro()
+}
 
 onMounted(() => {
   // Apply any shared presets from the URL hash (e.g. #band=alpha&noise=pink…).
@@ -25,6 +35,10 @@ onMounted(() => {
   window.setTimeout(() => {
     showSplash.value = false
   }, 1700)
+
+  ;['pointerdown', 'touchstart'].forEach((ev) =>
+    window.addEventListener(ev, playIntroOnFirstTap, { once: false }),
+  )
 })
 </script>
 
@@ -43,7 +57,8 @@ onMounted(() => {
         aria-hidden="true"
       >
         <div class="splash__ring">
-          <AuraLogo :size="84" animated />
+          <div class="splash__glow"></div>
+          <AuraLogo :size="105" animated />
         </div>
         <p class="splash__name">Aura</p>
         <p class="splash__tag">Binaural Therapy</p>
@@ -77,22 +92,41 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background-color: var(--color-bg);
-  transition: opacity 0.5s ease;
+  color: #e8ebef;
+  background: radial-gradient(120% 100% at 50% 30%, #141926 0%, #0b0d10 70%),
+    linear-gradient(180deg, #0b0d10, #0b0d10);
+  transition: opacity 0.6s ease;
 }
 .splash--fading {
   opacity: 0;
 }
+.splash__ring {
+  position: relative;
+  display: grid;
+  place-items: center;
+}
+.splash__glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 190px;
+  height: 190px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in oklab, var(--color-accent) 45%, transparent) 0%, transparent 70%);
+  filter: blur(8px);
+}
 .splash__name {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.7rem;
   font-weight: 700;
   letter-spacing: 0.02em;
+  color: #e8ebef;
 }
 .splash__tag {
   margin: 0;
-  font-size: 0.8rem;
-  color: var(--color-muted);
+  font-size: 0.85rem;
+  color: color-mix(in oklab, var(--color-accent) 80%, #fff);
 }
 .splash-enter-active {
   transition: opacity 0.2s ease;
