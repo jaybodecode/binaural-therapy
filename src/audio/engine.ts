@@ -173,6 +173,12 @@ function createAudioEngine() {
     // Immersive listener + any spatial layer.
     setupListener(ctx)
     rebuildSpatial()
+
+    // Appspec §8.1: when the page regains the foreground after iOS lock /
+    // tab switch, resume a suspended/interrupted context and re-play the
+    // anchor. Harmless on desktop (Chrome keeps the context running when
+    // hidden); ensures lock-screen playback resumes on iOS.
+    document.addEventListener('visibilitychange', onVisibilityChange)
   }
 
   function ensurePlayback() {
@@ -221,6 +227,19 @@ function createAudioEngine() {
     }
     if (spatialNode) bgEngine.gain.connect(spatialNode).connect(bgGain)
     else bgEngine.gain.connect(bgGain)
+  }
+
+  /** Appspec §8.1: resume context when the page returns to the foreground. */
+  function onVisibilityChange() {
+    if (document.visibilityState !== 'visible') return
+    if (!ctx) return
+    const state = (ctx as { state?: string }).state
+    if (state === 'suspended' || state === 'interrupted') {
+      ctx.resume().catch(() => {})
+    }
+    if (anchor && anchor.paused) {
+      anchor.play().catch(() => {})
+    }
   }
 
   // ── Public API ────────────────────────────────────────────────────────────
