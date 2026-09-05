@@ -1,37 +1,64 @@
-# Binaural Therapy
+# Aura — Binaural Therapy
 
-A state-transitioning binaural beat and colored noise PWA, designed iOS-first as a Home Screen installable web app.
+A state-transitioning binaural beats and colored noise web app, designed **iOS-first** as an installable PWA. Use it for sleep, focus, and relaxation.
 
-## Status
+**Live:** [aura.sharefront.net](https://aura.sharefront.net)
 
-**v1 functional specification complete.** No production code yet.
+![Aura on iOS](./screenshots/iphone.png)
 
-- [`appspec.md`](./appspec.md) — the authoritative v1 specification. Read this first.
+---
 
-## Planned stack
+## Features
+
+- **Binaural beat sessions** across the brainwave bands — Delta, Theta, Alpha, Beta, Gamma.
+- **Session modes** that transition state over time:
+  - **State lock** — hold a fixed band
+  - **Power nap** — short focused reset
+  - **Go to bed** — wind down with a falling band
+  - **Oscillate** — drift between two bands
+  - **Sleep journey** — a 45-minute ramp with a 180s tone fade
+- **Colored noise** layer (Brown, Pink) plus **ambient backgrounds** (Rain, Ocean, None), each with independent gain.
+- **Themes** — Dark (default), White, and Sepia for pre-sleep eyes, rendered in a frosted liquid-glass style with iOS-look buttons and sliders.
+- **Shareable presets** — share a link that recreates your exact band, noise, background, beat and mode.
+- **Offline-ready PWA** — install to your Home Screen, works with a service worker.
+- **Ambient-space HRTF** (optional) — spatializes the noise/background layers for a 3D soundscape.
+
+## Install
+
+Open [aura.sharefront.net](https://aura.sharefront.net) in Safari (iOS) or Chrome (Android/desktop) and choose **Add to Home Screen**. On iOS there is no install prompt — the app shows a guide prompting Share → Add to Home Screen.
+
+## Stack
 
 - Vue 3 SPA + Vite + Tailwind CSS
-- Native Web Audio API (no Tone.js)
-- vite-plugin-pwa (Workbox) for service worker + install
+- Native Web Audio API (no audio library)
+- vite-plugin-pwa (Workbox) for the service worker and installability
 - localStorage + IndexedDB for persistence
-- Freesound (CC0/CC-BY) for ambient loops
-- Hosted on GitHub Pages via GitHub Actions
+- GitHub Pages via GitHub Actions (lint → format → typecheck → build → deploy on every push to `main`)
 
-## What this is not (v1)
+## Development
 
-- Not a native iOS app
-- Not a medical device
-- Not a cloud-synced account system
-- Not a music player
+```bash
+npm install
+npm run dev       # local dev server
+npm run build     # type-check + lint + format + build into dist/
+```
 
-## Roadmap
+The authoritative product spec and decision log live in [`appspec.md`](./appspec.md).
 
-See `appspec.md` §15. M0 = repo bootstrap.
+## Screenshots
 
-## Source-of-truth input
+| iPhone | iPad | Glass theme |
+| :---: | :---: | :---: |
+| [`screenshots/iphone.png`](./screenshots/iphone.png) | [`screenshots/ipad.png`](./screenshots/ipad.png) | [`screenshots/iphone-glass.png`](./screenshots/iphone-glass.png) |
 
-The original spec lives at `/mnt/hgfs/OMARCHY_SHARED/binaural_therapy_app_spec.json`. This repo extends it with iOS-first delivery, PWA constraints, and a deep literature digest (§3).
+## Credits & attribution
+
+Ambient loop attributions (CC0 ocean, CC-BY 3.0 rain) are listed in the in-app **Credits** page (route `/credits`). Loop files live in `public/loops/`.
+
+## Disclaimer
+
+Not a medical device. Binaural audio affects some people differently; if you have a seizure or heart condition, consult a clinician before use. Use at a sensible volume and not while driving.
 
 ## License
 
-To be decided in M5. Currently: all rights reserved by the repo owner; loop attributions tracked in `attribution.md` (to be created in M4).
+All rights reserved by the repo owner, except loop assets which carry their own CC0 / CC-BY terms (see the in-app Credits page). License decisions are tracked in `appspec.md` (M5).
