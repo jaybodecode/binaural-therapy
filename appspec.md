@@ -185,6 +185,7 @@ Left ear:  OscillatorNode(sine, f_carrier) -> StereoPannerNode(pan: -1) -> ToneG
 Right ear: OscillatorNode(sine, f_carrier + Δf) -> StereoPannerNode(pan: +1) -> ToneGainNode
 Atmosphere: AudioBufferSourceNode (loop) -> BiquadFilterNode -> AtmosphereGainNode
                                                    \-> AnalyserNode -> UI visualization
+                                              (optional) [AtmosphereGain] -> PannerNode(HRTF) -> AtmosphereGain
 Master:    [LeftGain, RightGain, AtmosphereGain] -> MasterGain
                                                 -> AudioContext.createMediaStreamDestination()
                                                 -> <audio srcObject={dest.stream}>   <- iOS anchor
@@ -192,6 +193,18 @@ Master:    [LeftGain, RightGain, AtmosphereGain] -> MasterGain
 ```
 
 **Dual output** (both MediaStream destination _and_ `audioContext.destination`) lets desktop / Android / older iOS use the direct path, while iOS gets the `<audio>` anchor without losing the desktop path.
+
+#### PannerMode (Spatial / "Ambient space")
+
+The **atmosphere** bus can optionally be placed spatially around the listener via a `PannerNode` (`panningModel: 'hrtf'`), controlled by an `AudioListener` at the origin. Three modes (off by default — sleep-safe, reduced-motion aware):
+
+- **Off** — classic stereo mix; atmosphere → `AtmosphereGain` directly (§ the default/above graph).
+- **Surround** — atmosphere fixed at an azimuth/elevation (HRTF spatial image).
+- **Drift** — HRTF + a slow automated azimuth wander (`requestAnimationFrame`), with configurable wander radius and drift speed.
+
+**The binaural carrier tones are never spatialized.** They stay hard-panned `StereoPannerNode(±1)` so each reaches exactly one ear, preserving the interaural-phase-difference mechanism the whole product depends on (Oster 1973; §3.6). Spatializing a carrier would introduce HRTF cross-talk and degrade the beat percept. Only the ambient layer is placed in 3D.
+
+Plumbing: `src/audio/panning.ts` (PannerNode + listener + modes), wired in `engine.setAtmosphere` / `start` via a reusable `connectAtmosphere`, persisted in settings, surfaced in HomeView's "Ambient space" panel. HRTF/Panner unsupported or unavailable → graceful fallback to non-spatial output. Drift animation stops on `stop()`.
 
 ### 5.3 Ramping protocol
 
@@ -641,17 +654,19 @@ Stage 4 behavior: **fade tones to 0 over 180 s** at stage-3 end to prevent sleep
 
 ### 10.3 Component inventory
 
-| Component                | Purpose                                                                                                                              |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `StartGate`              | Single CTA "Tap to Begin" — invokes the audioSession unlock + audio anchor per 8.6 / 8.3                                             |
-| `BandSelector`           | 5 cards (delta, theta, alpha, beta, gamma) with beat-frequency slider and evidence note                                              |
-| `AtmospherePicker`       | Cards for: rain, pink-synth, ocean, brown-synth, wind, forest (optional)                                                             |
-| `VolumeSlider`           | Tone and atmosphere volume (independent)                                                                                             |
-| `StereoCheck`            | "Play Left 440 Hz" / "Play Right 440 Hz" buttons for headphone verification                                                          |
-| `JourneyTimeline`        | Visual timeline of the 4 Sleep Journey stages with live progress indicator                                                           |
-| `NowPlayingCard`         | Mirrors `navigator.mediaSession.metadata` for visual consistency with lock screen                                                    |
-| `StageTransitionOverlay` | 30 s cross-region fade between stages with optional gentle haptic (8.5)                                                              |
-| `UpdateToast`            | PWA update prompt (see §7.5). Shown when a new SW is waiting. Two actions: "Apply now" (gated by session state) and "After session". |
+| Component                | Purpose                                                                                                                                         |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `StartGate`              | Single CTA "Tap to Begin" — invokes the audioSession unlock + audio anchor per 8.6 / 8.3                                                        |
+| `BandSelector`           | 5 cards (delta, theta, alpha, beta, gamma) with beat-frequency slider and evidence note                                                         |
+| `AtmospherePicker`       | Cards for: rain, pink-synth, ocean, brown-synth, wind, forest (optional)                                                                        |
+| `VolumeSlider`           | Tone and atmosphere volume (independent)                                                                                                        |
+| `StereoCheck`            | "Play Left 440 Hz" / "Play Right 440 Hz" buttons for headphone verification                                                                     |
+| `JourneyTimeline`        | Visual timeline of the 4 Sleep Journey stages with live progress indicator                                                                      |
+| `NowPlayingCard`         | Mirrors `navigator.mediaSession.metadata` for visual consistency with lock screen                                                               |
+| `StageTransitionOverlay` | 30 s cross-region fade between stages with optional gentle haptic (8.5)                                                                         |
+| `UpdateToast`            | PWA update prompt (see §7.5). Shown when a new SW is waiting. Two actions: "Apply now" (gated by session state) and "After session".            |
+| `SpatialPanel`           | "Ambient space" — Off / Surround / Drift PannerMode; azimuth + elevation sliders; wander radius + drift speed when Drift (see §5.2 PannerMode). |
+| `ResearchList`           | `/research` — six grounding papers (title, authors, journal, year, type, summary, DOI). Linked from `/credits`.                                 |
 
 ### 10.4 State store (Pinia)
 
@@ -878,3 +893,7 @@ These are explicitly **not** answered in v1 and need a design spike or external 
 | 2026-09-05 | Root base `'/'` + custom domain `aura.sharefront.net`                                              | App lives at domain root, so no subpath asset-rewrite bugs; `VITE_BASE_PATH` kept as escape hatch.                               |
 | 2026-09-05 | Repo made public                                                                                   | GH Pages in workflow mode on a User account requires public repo; also simplest for the spike URL.                               |
 | 2026-09-05 | iOS re-install caveat documented (manifest changes don't auto-apply)                               | Forces discipline around icon/color/start_url changes; baked into §7.3 and §16.                                                  |
+| 2026-09-05 | PannerMode spatial layer on the atmosphere only (HRTF surround + drift)                            | Immersive without risking the binaural beat percept (carriers stay hard-panned). Off by default.                                 |
+| 2026-09-05 | Sourced ocean loop + IndexedDB cache (idb-keyval), synth fallback                                  | Truly offline-capable atmospheres; sourced loops are an enhancement over required-to-work synth.                                 |
+| 2026-09-05 | GH Pages SPA deep-link fix: postbuild copies index.html → 404.html                                 | 404.html boots the app on any unknown history-mode path so Vue Router can client-side-route (/credits, /research).               |
+| 2026-09-05 | Add /research route + six grounding papers                                                         | Surface evidence + caveats transparently (offset promo-claims risk, §14); linked from /credits.                                  |
