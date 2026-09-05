@@ -4,11 +4,20 @@ import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// When deployed under a subpath (e.g. GitHub Pages at
+// https://user.github.io/repo-name/) we must set `base` to that subpath so
+// the emitted JS/CSS/manifest references resolve correctly. For the local
+// dev server this also works because dev URLs don't go through GitHub's
+// subpath rewriting. When a custom CNAME is added, change this to '/'.
+const BASE = process.env.VITE_BASE_PATH || '/binaural-therapy/'
+
 export default defineConfig({
+  base: BASE,
   plugins: [
     vue(),
     tailwindcss(),
     VitePWA({
+      base: BASE,
       registerType: 'prompt',
       injectRegister: 'auto',
       strategies: 'generateSW',
