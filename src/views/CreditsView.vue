@@ -43,6 +43,19 @@
       </p>
     </section>
 
+    <section class="card mb-4">
+      <h2 class="text-lg font-semibold">Research</h2>
+      <p class="text-muted mt-2 text-sm leading-relaxed">
+        The six references grounding our design defaults — efficacy of binaural beats
+        (Garcia-Argibay 2019), EEG-entrainment evidence (Ingendoh 2023), pink-noise slow-wave
+        enhancement (Papalambros 2017), 40 Hz neuroprotection (Adaikkan 2019), 1/f resting-EEG
+        scaling (Linkenkaer-Hansen 2001), and the foundational account (Oster 1973).
+      </p>
+      <RouterLink class="mt-2 inline-block text-accent text-sm underline" to="/research">
+        Read the papers →
+      </RouterLink>
+    </section>
+
     <nav class="mt-6">
       <RouterLink class="text-accent text-sm underline" to="/">← Back to app</RouterLink>
     </nav>

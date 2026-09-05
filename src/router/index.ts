@@ -20,6 +20,12 @@ const routes: RouteRecordRaw[] = [
     meta: { title: 'Credits · Binaural Therapy' },
   },
   {
+    path: '/research',
+    name: 'research',
+    component: () => import('@/views/ResearchView.vue'),
+    meta: { title: 'Research · Binaural Therapy' },
+  },
+  {
     // 404 fallback to home
     path: '/:pathMatch(.*)*',
     redirect: { name: 'home' },
