@@ -9,6 +9,7 @@
     "build": "run-s type-check build:vite",
     "build:vue": "vue-tsc --build",
     "build:vite": "vite build",
+    "postbuild": "node -e \"require('fs').copyFileSync('dist/index.html','dist/404.html'); console.log('404.html copied from index.html (SPA deep-link fallback)')\"",
     "preview": "vite preview",
     "type-check": "vue-tsc --build",
     "lint": "eslint . --cache",
