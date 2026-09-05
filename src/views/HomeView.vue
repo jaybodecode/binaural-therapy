@@ -101,7 +101,6 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
       </div>
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
       <p class="home__links">
-        Sound off?
         <RouterLink class="home__linkbtn" to="/credits">Credits</RouterLink>
         <RouterLink class="home__linkbtn" to="/research">Research</RouterLink>
       </p>
@@ -467,34 +466,16 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Theme (at end) -->
     <section class="card" aria-labelledby="theme-heading">
       <h2 id="theme-heading" class="home__section-title">Theme</h2>
-      <p class="muted-note mb-1">Palette</p>
       <div class="chip-row">
         <button
-          v-for="t in ['auto', 'dark', 'sepia-night'] as const"
+          v-for="t in ['auto', 'night', 'sepia'] as const"
           :key="t"
           type="button"
           class="chip"
           :class="{ 'chip--active': theme.theme === t }"
           @click="theme.set(t)"
         >
-          {{ t === 'sepia-night' ? 'Sepia Night' : t[0].toUpperCase() + t.slice(1) }}
-        </button>
-      </div>
-      <p class="muted-note mb-1 mt-3">Style</p>
-      <div class="chip-row">
-        <button
-          v-for="s in [
-            ['classic', 'Classic'],
-            ['glass', 'Glass'],
-            ['psych', 'Psychedelic'],
-          ] as const"
-          :key="s[0]"
-          type="button"
-          class="chip"
-          :class="{ 'chip--active': theme.style === s[0] }"
-          @click="theme.setStyle(s[0])"
-        >
-          {{ s[1] }}
+          {{ t[0].toUpperCase() + t.slice(1) }}
         </button>
       </div>
     </section>
@@ -607,10 +588,20 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply grid grid-cols-3 gap-2 sm:grid-cols-5;
 }
 .band-card {
-  @apply flex flex-col items-center gap-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-center transition-colors;
+  @apply flex flex-col items-center gap-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_70%,transparent)] p-3 text-center transition-colors;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .band-card--active {
-  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+  @apply border-transparent;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-accent) 40%, transparent),
+    color-mix(in oklab, var(--color-accent-strong) 12%, transparent)
+  );
+  box-shadow:
+    0 0 16px color-mix(in oklab, var(--color-accent) 35%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .band-card__icon {
   @apply text-2xl;
@@ -632,10 +623,20 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply grid grid-cols-2 gap-2;
 }
 .atmos-card {
-  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-left transition-colors;
+  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_70%,transparent)] p-3 text-left transition-colors;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .atmos-card--active {
-  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+  @apply border-transparent;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-accent) 40%, transparent),
+    color-mix(in oklab, var(--color-accent-strong) 12%, transparent)
+  );
+  box-shadow:
+    0 0 14px color-mix(in oklab, var(--color-accent) 32%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 .atmos-card--locked {
   opacity: 0.5;
@@ -651,10 +652,18 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply mt-2 grid grid-cols-1 gap-2;
 }
 .transit-card {
-  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-left transition-colors;
+  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_70%,transparent)] p-3 text-left transition-colors;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 .transit-card--active {
-  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+  @apply border-transparent;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-accent) 40%, transparent),
+    color-mix(in oklab, var(--color-accent-strong) 12%, transparent)
+  );
+  box-shadow: 0 0 14px color-mix(in oklab, var(--color-accent) 32%, transparent);
 }
 .transit-card__label {
   @apply text-fg text-sm font-semibold;
@@ -683,10 +692,18 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
   @apply flex flex-wrap gap-2;
 }
 .chip {
-  @apply rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] px-3 py-1 text-sm transition-colors;
+  @apply rounded-full border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] px-3 py-1 text-sm transition-colors;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 .chip--active {
-  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)] text-fg;
+  @apply border-transparent text-fg;
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-accent) 55%, transparent),
+    color-mix(in oklab, var(--color-accent-strong) 25%, transparent)
+  );
 }
 
 .btn-row {

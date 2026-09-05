@@ -33,66 +33,34 @@
     --color-accent-strong: #4a8aff;
   }
 
-  /* Sepia "night" theme — warm, low-blue-light palette for pre-sleep use. */
-  html[data-theme='sepia-night'] {
+  /* Day palette — light, crisp glass. */
+  html[data-theme='day'] {
+    color-scheme: light;
+    --color-bg: #eef1f6;
+    --color-fg: #16191f;
+    --color-muted: #5a6472;
+    --color-accent: #3b82f6;
+    --color-accent-strong: #2563eb;
+  }
+
+  /* Sepia palette — warm, low-blue-light for pre-sleep eyes. */
+  html[data-theme='sepia'] {
     color-scheme: dark;
-    --color-bg: #191510;
-    --color-fg: #ece4d8;
+    --color-bg: #1c1712;
+    --color-fg: #ece3d4;
     --color-muted: #a89a85;
     --color-accent: #d8a96a;
     --color-accent-strong: #c98f4e;
   }
 
-  /* ── Visual styles ──────────────────────────────────────────────── */
-  /* Liquid-glass iOS: frosted translucent cards + vivid accents. */
+  /* ── Glass visual style (always on; palette varies via data-theme) ── */
   html[data-style='glass'] {
-    --glow: rgba(110, 168, 255, 0.35);
+    color-scheme: dark;
   }
   html[data-style='glass'] body {
     background-image:
-      radial-gradient(120% 60% at 50% -10%, rgba(110, 168, 255, 0.18), transparent 60%),
-      radial-gradient(100% 50% at 85% 110%, rgba(110, 168, 255, 0.12), transparent 55%);
-  }
-  html[data-style='glass'] .card {
-    background: rgba(22, 26, 34, 0.55) !important;
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    box-shadow:
-      0 8px 32px rgba(0, 0, 0, 0.4),
-      inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(24px) saturate(180%);
-    -webkit-backdrop-filter: blur(24px) saturate(180%);
-  }
-  html[data-style='glass'] .atmos-card,
-  html[data-style='glass'] .band-card,
-  html[data-style='glass'] .chip,
-  html[data-style='glass'] .transit-card {
-    background: rgba(22, 26, 34, 0.4) !important;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-  }
-
-  /* Psychedelic: gradient background + saturated accents. */
-  html[data-style='psych'] {
-    --color-accent: #ff6ad5;
-    --color-accent-strong: #9b59ff;
-  }
-  html[data-style='psych'] body {
-    background-image: linear-gradient(135deg, #180a1f 0%, #2a0f3d 40%, #14234a 100%);
-  }
-  html[data-style='psych'] .card {
-    background: rgba(30, 18, 48, 0.6) !important;
-    border: 1px solid rgba(255, 106, 213, 0.25);
-    box-shadow: 0 0 24px rgba(155, 89, 255, 0.18);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-  }
-  html[data-style='psych'] .atmos-card,
-  html[data-style='psych'] .band-card,
-  html[data-style='psych'] .chip,
-  html[data-style='psych'] .transit-card {
-    background: rgba(30, 18, 48, 0.55) !important;
-    border: 1px solid rgba(255, 106, 213, 0.2);
+      radial-gradient(120% 60% at 50% -10%, rgba(110, 168, 255, 0.16), transparent 60%),
+      radial-gradient(100% 50% at 85% 110%, rgba(110, 168, 255, 0.1), transparent 55%);
   }
 
   html,
@@ -127,29 +95,67 @@
 
 @layer components {
   .card {
-    @apply rounded-card bg-[color-mix(in_oklab,var(--color-bg)_92%,white_8%)] p-4 shadow-[0_2px_8px_rgba(0,0,0,0.4)];
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    @apply rounded-card p-4;
+    background:
+      linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 55%),
+      color-mix(in oklab, var(--color-bg) 60%, transparent);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow:
+      0 8px 32px rgba(0, 0, 0, 0.4),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
   }
 
   .btn-primary {
-    @apply min-h-touch rounded-card bg-accent px-5 font-semibold text-bg transition-colors;
+    @apply min-h-touch rounded-full px-6 font-semibold text-bg transition-all;
+    background: linear-gradient(180deg, var(--color-accent-strong), var(--color-accent));
+    box-shadow:
+      0 6px 20px color-mix(in oklab, var(--color-accent) 45%, transparent),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
   }
-
-  .btn-primary:hover {
-    @apply bg-accent-strong;
-  }
-
   .btn-primary:active {
-    transform: scale(0.98);
+    transform: scale(0.97);
+    box-shadow: 0 2px 8px color-mix(in oklab, var(--color-accent) 40%, transparent);
   }
 
   .btn-secondary {
-    @apply min-h-touch rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-transparent px-5 text-fg transition-colors;
+    @apply min-h-touch rounded-full border px-5 text-fg transition-all;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+  }
+  .btn-secondary:active {
+    transform: scale(0.97);
+    background: rgba(255, 255, 255, 0.1);
   }
 
-  .btn-secondary:hover {
-    @apply bg-[color-mix(in_oklab,var(--color-fg)_6%,transparent)];
+  /* iOS liquid slider */
+  input[type='range'].slider {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--color-fg) 20%, transparent);
+    outline-offset: 4px;
+  }
+  input[type='range'].slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-accent) 70%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+  }
+  input[type='range'].slider::-moz-range-thumb {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #ffffff, var(--color-accent) 70%);
+    border: 1px solid rgba(255, 255, 255, 0.4);
   }
 
   .visually-hidden {
