@@ -419,7 +419,7 @@ const beatMin = computed(() => session.currentBand.beatRange[0])
     <!-- Presets -->
     <section class="card" aria-labelledby="presets-heading">
       <h2 id="presets-heading" class="home__section-title">Presets</h2>
-      <p class="muted-note">Current: {{ currentAutoName }}</p>
+      <p class="muted-note mb-3">Current: {{ currentAutoName }}</p>
       <div class="preset-save">
         <button type="button" class="btn-secondary flex-1" @click="openSavePrompt">
           Save current

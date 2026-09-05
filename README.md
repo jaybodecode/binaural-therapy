@@ -4,6 +4,8 @@ A state-transitioning binaural beats and colored noise web app, designed **iOS-f
 
 **Live:** [aura.sharefront.net](https://aura.sharefront.net)
 
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](./LICENSE)
+
 <table>
   <tr>
     <td align="center"><img src="./screenshots/aura-dark.png" width="200" alt="Aura on iOS (dark theme)"><br><em>Dark (default)</em></td>
@@ -67,4 +69,6 @@ Not a medical device. Binaural audio affects some people differently; if you hav
 
 ## License
 
-All rights reserved by the repo owner, except loop assets which carry their own CC0 / CC-BY terms (see the in-app Credits page). License decisions are tracked in `appspec.md` (M5).
+Released under the [MIT License](./LICENSE) — free to use, modify, and distribute, including commercially, with no attribution required (just preserve the license notice).
+
+Loop assets (CC0 ocean, CC-BY 3.0 rain, see the in-app Credits page) carry their own terms.
