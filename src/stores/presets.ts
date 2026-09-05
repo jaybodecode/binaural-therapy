@@ -1,15 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import type { AtmosphereId, BandId } from '@/data/bands'
+import type { BackgroundId, BandId, NoiseId } from '@/data/bands'
 
 export interface Preset {
   id: string
   name: string
   band: BandId
-  atmosphere: AtmosphereId
-  toneGain: number
-  atmosphereGain: number
   beatHz: number | null
+  toneGain: number
+  noise: NoiseId
+  noiseGain: number
+  background: BackgroundId
+  backgroundGain: number
 }
 
 const STORE_KEY = 'bt:presets:v1'

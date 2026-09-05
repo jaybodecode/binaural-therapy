@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
-import { getBand } from '@/data/bands'
+import { getBand, type BackgroundId, type BandId, type NoiseId } from '@/data/bands'
 import { useAudioEngine } from '@/audio/engine'
 import type { SpatialConfig } from '@/audio/panning'
 import { loadSettings, saveSettings } from './settings'
-import type { AtmosphereId, BandId } from '@/data/bands'
 
 /**
- * Session store. Owns the user-visible state (band, atmosphere, gains,
- * spatial mode, play state) and keeps it in sync with the shared audio engine.
+ * Session store. Owns the user-visible state (band, tone gain, noise layer,
+ * background layer, spatial mode, play state) and keeps it in sync with the
+ * shared audio engine. Noise and background are independent layers.
  */
 export const useSessionStore = defineStore('session', () => {
   const engine = useAudioEngine()
@@ -17,10 +17,12 @@ export const useSessionStore = defineStore('session', () => {
 
   const mode = ref<'state-lock'>('state-lock')
   const band = ref<BandId>(persisted.band)
-  const atmosphere = ref<AtmosphereId>(persisted.atmosphere)
-  const toneGain = ref(persisted.toneGain)
-  const atmosphereGain = ref(persisted.atmosphereGain)
   const beatHz = ref(persisted.beatHz)
+  const toneGain = ref(persisted.toneGain)
+  const noise = ref<NoiseId>(persisted.noise)
+  const noiseGain = ref(persisted.noiseGain)
+  const background = ref<BackgroundId>(persisted.background)
+  const backgroundGain = ref(persisted.backgroundGain)
   const spatial = ref<SpatialConfig>({ ...persisted.spatial })
 
   const isPlaying = computed(() => engine.status.value === 'playing')
@@ -28,10 +30,9 @@ export const useSessionStore = defineStore('session', () => {
 
   const currentBand = computed(() => getBand(band.value))
 
-  /** The atmosphere that is locked to the current band by default. */
-  const lockedAtmosphere = computed(() => getBand(band.value).preferredAtmosphere)
+  /** The noise mask locked to the current band by default (brown=deep/focus-sleep, pink=focus). */
+  const lockedNoise = computed(() => getBand(band.value).preferredNoise)
 
-  /** The beat frequency actually driving the engine: override or band default. */
   const effectiveBeat = computed(() => {
     const b = getBand(band.value)
     return beatHz.value ?? b.defaultBeatHz
@@ -40,15 +41,21 @@ export const useSessionStore = defineStore('session', () => {
   function setBand(id: BandId) {
     band.value = id
     beatHz.value = null
+    // Lock the noise mask to the band's preferred one.
+    const pref = getBand(id).preferredNoise
+    noise.value = pref
+    engine.setNoise(pref)
     engine.setBand(id)
-    const pref = getBand(id).preferredAtmosphere
-    atmosphere.value = pref
-    engine.setAtmosphere(pref)
   }
 
-  function setAtmosphere(id: AtmosphereId) {
-    atmosphere.value = id
-    engine.setAtmosphere(id)
+  function setNoise(id: NoiseId) {
+    noise.value = id
+    engine.setNoise(id)
+  }
+
+  function setBackground(id: BackgroundId) {
+    background.value = id
+    engine.setBackground(id)
   }
 
   function setToneGain(g: number) {
@@ -56,9 +63,14 @@ export const useSessionStore = defineStore('session', () => {
     engine.setToneGain(g)
   }
 
-  function setAtmosphereGain(g: number) {
-    atmosphereGain.value = g
-    engine.setAtmosphereGain(g)
+  function setNoiseGain(g: number) {
+    noiseGain.value = g
+    engine.setNoiseGain(g)
+  }
+
+  function setBackgroundGain(g: number) {
+    backgroundGain.value = g
+    engine.setBgGain(g)
   }
 
   function setBeat(hz: number) {
@@ -73,10 +85,12 @@ export const useSessionStore = defineStore('session', () => {
 
   function start() {
     engine.setBand(band.value)
-    engine.setAtmosphere(atmosphere.value)
+    engine.setNoise(noise.value)
+    engine.setBackground(background.value)
     engine.setBeat(effectiveBeat.value)
     engine.setToneGain(toneGain.value)
-    engine.setAtmosphereGain(atmosphereGain.value)
+    engine.setNoiseGain(noiseGain.value)
+    engine.setBgGain(backgroundGain.value)
     engine.setSpatial(spatial.value)
     engine.start()
   }
@@ -95,14 +109,16 @@ export const useSessionStore = defineStore('session', () => {
   }
 
   watch(
-    [band, atmosphere, toneGain, atmosphereGain, beatHz, spatial],
+    [band, beatHz, toneGain, noise, noiseGain, background, backgroundGain, spatial],
     () => {
       saveSettings({
         band: band.value,
-        atmosphere: atmosphere.value,
-        toneGain: toneGain.value,
-        atmosphereGain: atmosphereGain.value,
         beatHz: beatHz.value,
+        toneGain: toneGain.value,
+        noise: noise.value,
+        noiseGain: noiseGain.value,
+        background: background.value,
+        backgroundGain: backgroundGain.value,
         spatial: spatial.value,
       })
     },
@@ -112,20 +128,24 @@ export const useSessionStore = defineStore('session', () => {
   return {
     mode,
     band,
-    atmosphere,
-    toneGain,
-    atmosphereGain,
     beatHz,
+    toneGain,
+    noise,
+    noiseGain,
+    background,
+    backgroundGain,
     spatial,
     isPlaying,
     canPlay,
     currentBand,
-    lockedAtmosphere,
+    lockedNoise,
     effectiveBeat,
     setBand,
-    setAtmosphere,
+    setNoise,
+    setBackground,
     setToneGain,
-    setAtmosphereGain,
+    setNoiseGain,
+    setBackgroundGain,
     setBeat,
     setSpatial,
     start,

@@ -1,16 +1,18 @@
-import type { AtmosphereId, BandId } from '@/data/bands'
+import type { BackgroundId, BandId, NoiseId } from '@/data/bands'
 import {
-  DEFAULT_ATMOSPHERE,
-  DEFAULT_ATMOSPHERE_GAIN,
+  DEFAULT_BACKGROUND,
+  DEFAULT_BACKGROUND_GAIN,
   DEFAULT_BAND,
+  DEFAULT_NOISE,
+  DEFAULT_NOISE_GAIN,
   DEFAULT_TONE_GAIN,
 } from '@/data/bands'
-import { DEFAULT_SPATIAL, type PanningMode } from '@/audio/panning'
+import { DEFAULT_SPATIAL } from '@/audio/panning'
 
 const KEY = 'bt:settings:v1'
 
 export interface SpatialSettings {
-  mode: PanningMode
+  mode: 'off' | 'surround' | 'drift'
   azimuth: number
   elevation: number
   driftSpeed: number
@@ -20,21 +22,24 @@ export interface SpatialSettings {
 
 export interface Settings {
   band: BandId
-  atmosphere: AtmosphereId
-  toneGain: number
-  atmosphereGain: number
-  /** Optional custom beat override within the band range (Hz). null = band default. */
   beatHz: number | null
+  toneGain: number
+  noise: NoiseId
+  noiseGain: number
+  background: BackgroundId
+  backgroundGain: number
   spatial: SpatialSettings
 }
 
 export function defaultSettings(): Settings {
   return {
     band: DEFAULT_BAND,
-    atmosphere: DEFAULT_ATMOSPHERE,
-    toneGain: DEFAULT_TONE_GAIN,
-    atmosphereGain: DEFAULT_ATMOSPHERE_GAIN,
     beatHz: null,
+    toneGain: DEFAULT_TONE_GAIN,
+    noise: DEFAULT_NOISE,
+    noiseGain: DEFAULT_NOISE_GAIN,
+    background: DEFAULT_BACKGROUND,
+    backgroundGain: DEFAULT_BACKGROUND_GAIN,
     spatial: { ...DEFAULT_SPATIAL },
   }
 }

@@ -11,21 +11,29 @@ export interface Band {
   carrierHz: number
   /** Functional description — what this state is good for (no citations). */
   description: string
-  /** Preferred atmosphere id; stays locked while this band is active. */
-  preferredAtmosphere: AtmosphereId
+  /** Locked noise mask for this band (brown for sleep, pink for focus). */
+  preferredNoise: NoiseId
   icon: string
 }
 
-export type AtmosphereId = 'pink' | 'brown' | 'rain' | 'ocean'
+/** Colored-noise mask layer (always available; locked to band by default). */
+export type NoiseId = 'pink' | 'brown'
 
-export interface Atmosphere {
-  id: AtmosphereId
+/** Optional natural background ambience layer (independent gain; can be off). */
+export type BackgroundId = 'none' | 'rain' | 'ocean'
+
+export interface Noise {
+  id: NoiseId
   label: string
-  /** Synthesis profile. rain/pink/ocean/brown are all generated offline-capable. */
-  profile: 'pink' | 'brown' | 'rain' | 'ocean'
+  profile: 'pink' | 'brown'
   description: string
-  /** Short human label for the noise-type picker. */
-  kind: string
+}
+
+export interface Background {
+  id: BackgroundId
+  label: string
+  profile: 'rain' | 'ocean'
+  description: string
 }
 
 export const BANDS: Band[] = [
@@ -36,7 +44,7 @@ export const BANDS: Band[] = [
     defaultBeatHz: 2.0,
     carrierHz: 160,
     description: 'Deep sleep — slow, heavy waves for falling into deep sleep and staying there.',
-    preferredAtmosphere: 'brown',
+    preferredNoise: 'brown',
     icon: '🌒',
   },
   {
@@ -47,7 +55,7 @@ export const BANDS: Band[] = [
     carrierHz: 210,
     description:
       'Dreaming & meditation — the drifting, dreamy space before sleep and in deep meditation.',
-    preferredAtmosphere: 'brown',
+    preferredNoise: 'brown',
     icon: '🌊',
   },
   {
@@ -58,7 +66,7 @@ export const BANDS: Band[] = [
     carrierHz: 240,
     description:
       'Relaxed focus — calm, clear, wakeful relaxation; good for reading or easing anxiety.',
-    preferredAtmosphere: 'pink',
+    preferredNoise: 'pink',
     icon: '🌿',
   },
   {
@@ -68,7 +76,7 @@ export const BANDS: Band[] = [
     defaultBeatHz: 18.0,
     carrierHz: 300,
     description: 'Active focus — alert, analytical, on-task concentration for work or study.',
-    preferredAtmosphere: 'pink',
+    preferredNoise: 'pink',
     icon: '⚡',
   },
   {
@@ -78,51 +86,57 @@ export const BANDS: Band[] = [
     defaultBeatHz: 40.0,
     carrierHz: 320,
     description: 'Peak focus — sharp, integrative attention for deep problem-solving.',
-    preferredAtmosphere: 'pink',
+    preferredNoise: 'pink',
     icon: '🔆',
   },
 ]
 
-export const ATMOSPHERES: Atmosphere[] = [
+export const NOISES: Noise[] = [
   {
     id: 'brown',
     label: 'Brown Noise',
     profile: 'brown',
-    kind: 'Noise',
     description: 'Deep, warm bass rumble — strong masking, great for sleep.',
   },
   {
     id: 'pink',
     label: 'Pink Noise',
     profile: 'pink',
-    kind: 'Noise',
-    description: 'Balanced, gentle white-ish hiss — low fatigue, good for focus.',
+    description: 'Balanced, gentle hiss — low fatigue, good for focus.',
   },
+]
+
+export const BACKGROUNDS: Background[] = [
   {
     id: 'rain',
     label: 'Steady Rain',
     profile: 'rain',
-    kind: 'Background',
     description: 'Soft, steady rain bed — comfortable and calming.',
   },
   {
     id: 'ocean',
     label: 'Ocean Waves',
     profile: 'ocean',
-    kind: 'Background',
     description: 'Slow ocean swell with a gentle rhythm.',
   },
 ]
 
 export const DEFAULT_BAND: BandId = 'alpha'
-export const DEFAULT_ATMOSPHERE: AtmosphereId = 'pink'
+export const DEFAULT_NOISE: NoiseId = 'pink'
+export const DEFAULT_BACKGROUND: BackgroundId = 'none'
 export const DEFAULT_TONE_GAIN = 0.2
-export const DEFAULT_ATMOSPHERE_GAIN = 0.75
+export const DEFAULT_NOISE_GAIN = 0.6
+export const DEFAULT_BACKGROUND_GAIN = 0.75
 
 export function getBand(id: BandId): Band {
   return BANDS.find((b) => b.id === id) ?? BANDS[0]
 }
 
-export function getAtmosphere(id: AtmosphereId): Atmosphere {
-  return ATMOSPHERES.find((a) => a.id === id) ?? ATMOSPHERES[0]
+export function getNoise(id: NoiseId): Noise {
+  return NOISES.find((n) => n.id === id) ?? NOISES[0]
+}
+
+export function getBackground(id: BackgroundId): Background | null {
+  if (id === 'none') return null
+  return BACKGROUNDS.find((b) => b.id === id) ?? null
 }

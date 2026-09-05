@@ -1,9 +1,11 @@
-import type { AtmosphereId } from '@/data/bands'
+import type { BackgroundId, NoiseId } from '@/data/bands'
+
+export type AtmosphereId = NoiseId | BackgroundId
 
 /**
  * Generate loopable, offline-capable atmosphere sounds via pure synthesis.
  *
- * Four profiles (appspec §6.1 — all synth, no assets):
+ * Profiles:
  *   pink  : 1/f from white via Paul Kellet pink filter.
  *   brown : 1/f² by integrating white noise.
  *   rain  : pink-ish hiss, high-passed for a steady rain bed.

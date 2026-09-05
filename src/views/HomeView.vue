@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { useSessionStore } from '@/stores/session'
 import { usePresetsStore } from '@/stores/presets'
 import { useThemeStore } from '@/stores/theme'
-import { ATMOSPHERES, BANDS, getBand } from '@/data/bands'
+import { BACKGROUNDS, BANDS, NOISES, getBand } from '@/data/bands'
 import AuraLogo from '@/components/AuraLogo.vue'
 
 const REPO_URL = 'https://github.com/jaybodecode/binaural-therapy'
@@ -36,10 +36,12 @@ function confirmSave() {
   const name = presetName.value.trim() || currentAutoName.value
   presets.add(name, {
     band: session.band,
-    atmosphere: session.atmosphere,
-    toneGain: session.toneGain,
-    atmosphereGain: session.atmosphereGain,
     beatHz: session.beatHz,
+    toneGain: session.toneGain,
+    noise: session.noise,
+    noiseGain: session.noiseGain,
+    background: session.background,
+    backgroundGain: session.backgroundGain,
   })
   showNamePrompt.value = false
 }
@@ -50,23 +52,24 @@ function cancelSave() {
 
 function applyPreset(p: (typeof presets.presets)[number]) {
   session.setBand(p.band)
-  session.setAtmosphere(p.atmosphere)
+  session.setNoise(p.noise)
+  session.setNoiseGain(p.noiseGain)
+  session.setBackground(p.background)
+  session.setBackgroundGain(p.backgroundGain)
   session.setToneGain(p.toneGain)
-  session.setAtmosphereGain(p.atmosphereGain)
   if (p.beatHz != null) session.setBeat(p.beatHz)
 }
 
 const currentAutoName = computed(
-  () =>
-    `${session.currentBand.name} · ${session.atmosphere} · ${Math.round(session.toneGain * 100)}%`,
+  () => `${session.currentBand.name} · ${session.noise} · ${Math.round(session.toneGain * 100)}%`,
 )
 
 function shareLink() {
   const qp = new URLSearchParams({
     band: session.band,
-    atmos: session.atmosphere,
+    noise: session.noise,
+    bg: session.background === 'none' ? '' : session.background,
     tg: String(session.toneGain),
-    ag: String(session.atmosphereGain),
   })
   if (session.beatHz != null) qp.set('beat', String(session.beatHz))
   navigator.clipboard
@@ -77,11 +80,6 @@ function shareLink() {
 
 const beatMax = computed(() => session.currentBand.beatRange[1])
 const beatMin = computed(() => session.currentBand.beatRange[0])
-
-/** Noise-type atmospheres (settable, currently locked to band by default). */
-const noiseAtmos = ATMOSPHERES.filter((a) => a.kind === 'Noise')
-/** Background ambiences (rain/ocean). */
-const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
 </script>
 
 <template>
@@ -120,13 +118,12 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
       </div>
       <p class="band-note">{{ session.currentBand.description }}</p>
       <p class="band-lock">
-        Uses
-        <strong>{{ getBand(session.band).preferredAtmosphere }} noise</strong> + beat
+        Uses <strong>{{ getBand(session.band).preferredNoise }} noise</strong> · beat
         {{ session.effectiveBeat.toFixed(1) }} Hz
       </p>
     </section>
 
-    <!-- Volume: Entrainment tone -->
+    <!-- Tone volume -->
     <section class="card" aria-labelledby="tone-vol-heading">
       <h2 id="tone-vol-heading" class="home__section-title">Tone volume</h2>
       <div class="field">
@@ -153,81 +150,88 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
       </h2>
       <div class="atmos-grid">
         <button
-          v-for="a in noiseAtmos"
-          :key="a.id"
+          v-for="n in NOISES"
+          :key="n.id"
           type="button"
           class="atmos-card"
           :class="{
-            'atmos-card--active': session.atmosphere === a.id,
-            'atmos-card--locked': session.atmosphere !== a.id,
+            'atmos-card--active': session.noise === n.id,
+            'atmos-card--locked': session.noise !== n.id,
           }"
-          :aria-pressed="session.atmosphere === a.id"
-          @click="session.setAtmosphere(a.id)"
+          :aria-pressed="session.noise === n.id"
+          @click="session.setNoise(n.id)"
         >
-          <span class="atmos-card__label">{{ a.label }}</span>
-          <span class="atmos-card__desc">{{ a.description }}</span>
+          <span class="atmos-card__label">{{ n.label }}</span>
+          <span class="atmos-card__desc">{{ n.description }}</span>
         </button>
       </div>
       <p class="muted-note">
         {{
-          session.atmosphere === session.lockedAtmosphere
-            ? `Auto-set to ${getBand(session.band).preferredAtmosphere} for ${session.currentBand.name}.`
-            : `Using ${session.atmosphere} (overridden).`
+          session.noise === session.lockedNoise
+            ? `Auto-set to ${getBand(session.band).preferredNoise} for ${session.currentBand.name}.`
+            : `Using ${session.noise} (overridden).`
         }}
       </p>
       <div class="field mt-2">
         <div class="field__label">
           <span>Noise volume</span>
-          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
+          <output>{{ (session.noiseGain * 100).toFixed(0) }}%</output>
         </div>
         <input
-          v-if="session.atmosphereGain >= 0 && session.atmosphereGain <= 1"
           type="range"
           min="0"
           max="1"
           step="0.01"
           class="slider"
-          :value="session.atmosphereGain"
-          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
+          :value="session.noiseGain"
+          @input="session.setNoiseGain(Number(($event.target as HTMLInputElement).value))"
         />
       </div>
     </section>
 
-    <!-- Background ambiences (rain/ocean) -->
+    <!-- Background ambiences (rain/ocean) — independent layer -->
     <section class="card" aria-labelledby="background-heading">
       <h2 id="background-heading" class="home__section-title">Background ambience</h2>
       <div class="atmos-grid">
         <button
-          v-for="a in backgroundAtmos"
-          :key="a.id"
           type="button"
           class="atmos-card"
-          :class="{ 'atmos-card--active': session.atmosphere === a.id }"
-          :aria-pressed="session.atmosphere === a.id"
-          @click="session.setAtmosphere(a.id)"
+          :class="{ 'atmos-card--active': session.background === 'none' }"
+          :aria-pressed="session.background === 'none'"
+          @click="session.setBackground('none')"
         >
-          <span class="atmos-card__label">{{ a.label }}</span>
-          <span class="atmos-card__desc">{{ a.description }}</span>
+          <span class="atmos-card__label">None</span>
+          <span class="atmos-card__desc">No background layer.</span>
+        </button>
+        <button
+          v-for="b in BACKGROUNDS"
+          :key="b.id"
+          type="button"
+          class="atmos-card"
+          :class="{ 'atmos-card--active': session.background === b.id }"
+          :aria-pressed="session.background === b.id"
+          @click="session.setBackground(b.id)"
+        >
+          <span class="atmos-card__label">{{ b.label }}</span>
+          <span class="atmos-card__desc">{{ b.description }}</span>
         </button>
       </div>
-      <p class="muted-note">
-        Selecting a background ambient overrides the locked noise while active.
-      </p>
       <div class="field mt-2">
         <div class="field__label">
           <span>Background volume</span>
-          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
+          <output>{{ (session.backgroundGain * 100).toFixed(0) }}%</output>
         </div>
         <input
-          v-if="session.atmosphereGain >= 0 && session.atmosphereGain <= 1"
+          v-if="session.background !== 'none'"
           type="range"
           min="0"
           max="1"
           step="0.01"
           class="slider"
-          :value="session.atmosphereGain"
-          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
+          :value="session.backgroundGain"
+          @input="session.setBackgroundGain(Number(($event.target as HTMLInputElement).value))"
         />
+        <p v-else class="muted-note">Pick a background to enable volume.</p>
       </div>
     </section>
 
@@ -408,7 +412,10 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
         <li v-for="p in presets.presets" :key="p.id" class="preset-item">
           <button type="button" class="preset-item__load" @click="applyPreset(p)">
             <span class="preset-item__name">{{ p.name }}</span>
-            <span class="preset-item__meta">{{ p.band }} · {{ p.atmosphere }}</span>
+            <span class="preset-item__meta"
+              >{{ p.band }} · {{ p.noise
+              }}{{ p.background && p.background !== 'none' ? ` + ${p.background}` : '' }}</span
+            >
           </button>
           <button
             type="button"
@@ -533,12 +540,6 @@ const backgroundAtmos = ATMOSPHERES.filter((a) => a.kind === 'Background')
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .home__star,
-  .home__love {
-    animation: none;
-  }
-}
 .home__section-title {
   @apply text-fg mb-2 text-lg font-semibold;
 }
