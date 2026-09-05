@@ -404,6 +404,18 @@ iOS Home Screen PWAs have a sticky web-app process that does **not** auto-refres
 - SSR adds a Node host (and $$ or free-tier-with-cold-start) for zero benefit.
 - Vue 3 SPA + Vite is the leanest, fastest path to GH Pages.
 
+### 7.7 GH Pages subpath gotcha — DO NOT FORGET
+
+When the repo lives under a GH Pages subpath (e.g. `jaybodecode.github.io/binaural-therapy/`), Vite's default `base: '/'` produces an **empty page** that looks black on the iPhone. The browser fetches `/manifest.webmanifest` (404 against apex), `/assets/*.js` (404), and Vue Router fails to resolve any route. Symptoms:
+
+- HTTP 200 on the HTML, but `<div id="app">` stays empty after JS runs
+- No console errors (silent failure)
+- Browser DevTools → Network shows 404s for all `/assets/*` and `/manifest.webmanifest`
+
+**Fix**: in `vite.config.ts`, set `base: '/binaural-therapy/'` (or whatever the repo subpath is). Vite then rewrites every emitted URL. When a custom CNAME is added later, set `base: '/'` again — also need to drop the subpath from `manifest.start_url`, `manifest.scope`, and the runtime cache patterns.
+
+Also: **GH Pages must be in `build_type: "workflow"` mode**, not `legacy`. Legacy mode serves the `main` branch root, ignoring the artifact uploaded by `actions/deploy-pages@v4`. Create the Pages site via `gh api POST /repos/{owner}/{repo}/pages -f build_type=workflow` to get this right from the start.
+
 ---
 
 ## 8. iOS-First Interaction Model
