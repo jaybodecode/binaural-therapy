@@ -1,31 +1,20 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useSessionStore } from '@/stores/session'
+import { BANDS, ATMOSPHERES } from '@/data/bands'
 
-const greeting = ref('Tap to begin a session.')
-const isStarting = ref(false)
-const audioUnlocked = ref(false)
+const session = useSessionStore()
+const busy = ref(false)
 
-async function startSession() {
-  if (isStarting.value) return
-  isStarting.value = true
+async function begin() {
+  if (busy.value) return
+  busy.value = true
   try {
-    // M0 placeholder. M1 wires the real StartGate per appspec.md §8.6
-    // (AudioContext unlock inside the click handler) and §8.3
-    // (MediaStream destination into a hidden <audio>).
-    if (typeof window !== 'undefined' && 'AudioContext' in window) {
-      const ctx = new AudioContext()
-      await ctx.resume()
-      audioUnlocked.value = ctx.state === 'running'
-      greeting.value = audioUnlocked.value
-        ? 'Audio context unlocked. M1 will wire the real engine.'
-        : `Audio state: ${ctx.state}. Check §8.6 if unexpected.`
-    } else {
-      greeting.value = 'Web Audio API not available in this browser.'
-    }
-  } catch (err) {
-    greeting.value = `Unlock failed: ${err instanceof Error ? err.message : String(err)}`
+    await session.unlockAndStart()
+  } catch (e) {
+    console.error('unlock failed', e)
   } finally {
-    isStarting.value = false
+    busy.value = false
   }
 }
 </script>
@@ -37,32 +26,103 @@ async function startSession() {
       <p class="home__subtitle">State-transitioning audio for sleep, focus, and calm.</p>
     </header>
 
-    <section class="home__cta card" aria-labelledby="cta-heading">
-      <h2 id="cta-heading" class="visually-hidden">Start a session</h2>
-      <p class="home__hint">
-        {{ greeting }}
-      </p>
-      <button type="button" class="btn-primary w-full" :disabled="isStarting" @click="startSession">
-        <span v-if="isStarting">Starting…</span>
-        <span v-else>Tap to begin</span>
-      </button>
-      <p v-if="audioUnlocked" class="home__status" role="status">Audio context state: running</p>
+    <!-- Band selector -->
+    <section class="card" aria-labelledby="band-heading">
+      <h2 id="band-heading" class="visually-hidden">Choose a brainwave band</h2>
+      <div class="band-grid">
+        <button
+          v-for="b in BANDS"
+          :key="b.id"
+          type="button"
+          class="band-card"
+          :class="{ 'band-card--active': session.band === b.id }"
+          :aria-pressed="session.band === b.id"
+          @click="session.setBand(b.id)"
+        >
+          <span class="band-card__icon" aria-hidden="true">{{ b.icon }}</span>
+          <span class="band-card__name">{{ b.name }}</span>
+          <span class="band-card__range">{{ b.beatRange[0] }}–{{ b.beatRange[1] }} Hz</span>
+        </button>
+      </div>
+      <p class="band-note">{{ session.currentBand.note }}</p>
     </section>
 
-    <section class="home__roadmap" aria-labelledby="roadmap-heading">
-      <h2 id="roadmap-heading" class="home__section-title">M0 placeholder</h2>
-      <p>
-        This is the M0 scaffold. Real functionality ships in subsequent milestones (see
-        <code>appspec.md §15</code>).
-      </p>
-      <ul>
-        <li>M1 — State Lock end-to-end</li>
-        <li>M2 — Full catalogue &amp; presets</li>
-        <li>M3 — Sleep Journey</li>
-        <li>M4 — Sourced loops &amp; credits</li>
-        <li>M5 — Polish</li>
-      </ul>
+    <!-- Atmosphere picker -->
+    <section class="card" aria-labelledby="atmos-heading">
+      <h2 id="atmos-heading" class="home__section-title">Background</h2>
+      <div class="atmos-grid">
+        <button
+          v-for="a in ATMOSPHERES"
+          :key="a.id"
+          type="button"
+          class="atmos-card"
+          :class="{ 'atmos-card--active': session.atmosphere === a.id }"
+          :aria-pressed="session.atmosphere === a.id"
+          @click="session.setAtmosphere(a.id)"
+        >
+          <span class="atmos-card__label">{{ a.label }}</span>
+          <span class="atmos-card__desc">{{ a.description }}</span>
+        </button>
+      </div>
     </section>
+
+    <!-- Controls -->
+    <section class="card" aria-labelledby="controls-heading">
+      <h2 id="controls-heading" class="home__section-title">Controls</h2>
+
+      <div class="field">
+        <div class="field__label">
+          <span>Entrainment tone level</span>
+          <output>{{ (session.toneGain * 100).toFixed(0) }}%</output>
+        </div>
+        <input
+          v-model.number="session.toneGain"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          class="slider"
+          aria-valuetext="{{ (session.toneGain * 100).toFixed(0) }} percent"
+          @input="session.setToneGain(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+
+      <div class="field">
+        <div class="field__label">
+          <span>Background atmosphere level</span>
+          <output>{{ (session.atmosphereGain * 100).toFixed(0) }}%</output>
+        </div>
+        <input
+          v-model.number="session.atmosphereGain"
+          type="range"
+          min="0"
+          max="1"
+          step="0.01"
+          class="slider"
+          aria-valuetext="{{ (session.atmosphereGain * 100).toFixed(0) }} percent"
+          @input="session.setAtmosphereGain(Number(($event.target as HTMLInputElement).value))"
+        />
+      </div>
+
+      <p class="muted-note">
+        Carrier {{ session.currentBand.carrierHz }} Hz · Beat
+        {{ session.effectiveBeat.toFixed(1) }} Hz
+      </p>
+    </section>
+
+    <!-- Primary CTA -->
+    <div class="cta-wrap">
+      <button
+        v-if="!session.isPlaying"
+        type="button"
+        class="btn-primary w-full"
+        :disabled="busy"
+        @click="begin"
+      >
+        {{ busy ? 'Starting…' : session.canPlay ? 'Resume' : 'Tap to begin' }}
+      </button>
+      <button v-else type="button" class="btn-secondary w-full" @click="session.stop">Stop</button>
+    </div>
   </main>
 </template>
 
@@ -70,42 +130,79 @@ async function startSession() {
 @reference '../style.css';
 
 .home {
-  @apply mx-auto flex w-full max-w-[640px] flex-col gap-6 px-4 py-6;
+  @apply mx-auto flex w-full max-w-[640px] flex-col gap-4 px-4 py-6;
 }
-
 .home__header {
   @apply flex flex-col gap-2;
 }
-
 .home__title {
   @apply text-3xl font-bold tracking-tight;
 }
-
 .home__subtitle {
   @apply text-muted text-base;
 }
-
-.home__cta {
-  @apply flex flex-col gap-4;
-}
-
-.home__hint {
-  @apply text-muted text-sm leading-relaxed;
-}
-
-.home__status {
-  @apply text-success text-sm;
-}
-
-.home__roadmap {
-  @apply flex flex-col gap-2;
-}
-
 .home__section-title {
-  @apply text-fg text-lg font-semibold;
+  @apply text-fg text-lg font-semibold mb-2;
 }
 
-.home__roadmap ul {
-  @apply text-muted list-disc pl-5 text-sm leading-relaxed;
+/* Band grid */
+.band-grid {
+  @apply grid grid-cols-5 gap-2;
+}
+.band-card {
+  @apply flex flex-col items-center gap-1 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-center transition-colors;
+}
+.band-card--active {
+  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+}
+.band-card__icon {
+  @apply text-2xl;
+}
+.band-card__name {
+  @apply text-fg text-sm font-semibold;
+}
+.band-card__range {
+  @apply text-muted text-[0.7rem];
+}
+.band-note {
+  @apply text-muted mt-2 text-xs leading-relaxed;
+}
+
+/* Atmosphere grid */
+.atmos-grid {
+  @apply grid grid-cols-2 gap-2;
+}
+.atmos-card {
+  @apply flex flex-col gap-0.5 rounded-card border border-[color-mix(in_oklab,var(--color-fg)_15%,transparent)] bg-[color-mix(in_oklab,var(--color-bg)_96%,white_4%)] p-3 text-left transition-colors;
+}
+.atmos-card--active {
+  @apply border-accent bg-[color-mix(in_oklab,var(--color-accent)_18%,transparent)];
+}
+.atmos-card__label {
+  @apply text-fg text-sm font-semibold;
+}
+.atmos-card__desc {
+  @apply text-muted text-xs leading-snug;
+}
+
+/* Sliders */
+.field {
+  @apply mb-4 flex flex-col gap-1;
+}
+.field__label {
+  @apply flex items-center justify-between text-fg text-sm;
+}
+.field__label output {
+  @apply text-muted font-mono text-xs;
+}
+.slider {
+  @apply w-full;
+}
+.muted-note {
+  @apply text-muted mt-1 text-xs;
+}
+
+.cta-wrap {
+  @apply sticky bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-10 pb-2;
 }
 </style>

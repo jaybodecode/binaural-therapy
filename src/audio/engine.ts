@@ -1,0 +1,233 @@
+import { ref } from 'vue'
+import type { AtmosphereId, BandId } from '@/data/bands'
+import { ATMOSPHERES, getBand } from '@/data/bands'
+import { createAtmosphere, type AtmosphereEngine } from './noise'
+
+/**
+ * Ramp durations per appspec §5.3.
+ */
+const RAMP = {
+  carrier: 5,
+  beat: 60,
+  toneGain: 1.5,
+  atmosphereGain: 2.5,
+  master: 0.05,
+}
+
+export type EngineStatus = 'idle' | 'unlocked' | 'playing'
+
+let singleton: ReturnType<typeof createAudioEngine> | null = null
+
+/**
+ * A single shared Web Audio engine for the whole app.
+ *
+ * Graph (appspec §5.2):
+ *   Left:  Osc(sine, f)              -> StereoPanner(-1) -> toneGain
+ *   Right: Osc(sine, f + Δf)         -> StereoPanner(+1) -> toneGain
+ *   Atmos: NoiseBuffer -> Lowpass    -> atmosGain
+ *   [toneGain, atmosGain] -> master  -> ctx.destination        (direct)
+ *                                 -> MediaStreamDestination  -> <audio srcObject>   (iOS anchor, §8.3)
+ */
+function createAudioEngine() {
+  const status = ref<EngineStatus>('idle')
+
+  let ctx: AudioContext | null = null
+  let master: GainNode | null = null
+  let toneGain: GainNode | null = null
+  let atmosGain: GainNode | null = null
+  let oscL: OscillatorNode | null = null
+  let oscR: OscillatorNode | null = null
+  let anchor: HTMLAudioElement | null = null
+  let atmosphere: AtmosphereEngine | null = null
+  let currentAtmosphereId: AtmosphereId | null = null
+
+  let carrierHz = 240
+  let beatHz = 10
+  let targetToneGain = 0.2
+  let targetAtmosGain = 0.75
+
+  // ── Low-level helpers ─────────────────────────────────────────────────────
+  function ramp(param: AudioParam | null, target: number, seconds: number) {
+    if (!param || !ctx) return
+    const now = ctx.currentTime
+    param.cancelScheduledValues(now)
+    param.setValueAtTime(param.value, now)
+    param.linearRampToValueAtTime(target, now + seconds)
+  }
+
+  function buildGraph() {
+    ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+    master = ctx.createGain()
+    master.gain.value = 0
+    toneGain = ctx.createGain()
+    toneGain.gain.value = 0
+    atmosGain = ctx.createGain()
+    atmosGain.gain.value = 0
+
+    toneGain.connect(master)
+    atmosGain.connect(master)
+
+    // Direct path (desktop / Android / older iOS).
+    master.connect(ctx.destination)
+
+    // iOS MediaStream anchor (appspec §8.3).
+    try {
+      const dest = ctx.createMediaStreamDestination()
+      master.connect(dest)
+      anchor = document.createElement('audio')
+      anchor.setAttribute('playsinline', '')
+      anchor.srcObject = dest.stream
+    } catch (e) {
+      // Not supported — fall back to direct output (fine on desktop).
+      anchor = null
+    }
+  }
+
+  function ensurePlayback() {
+    // Anchor.play() must be inside the user-gesture chain (appspec §8.6).
+    if (anchor && anchor.paused) {
+      anchor.play().catch(() => {})
+    }
+  }
+
+  function makeOscillators() {
+    if (!ctx || !toneGain || oscL) return
+    const panL = ctx.createStereoPanner()
+    const panR = ctx.createStereoPanner()
+    panL.pan.value = -1
+    panR.pan.value = 1
+
+    oscL = ctx.createOscillator()
+    oscR = ctx.createOscillator()
+    oscL.type = 'sine'
+    oscR.type = 'sine'
+    oscL.frequency.value = carrierHz
+    oscR.frequency.value = carrierHz + beatHz
+
+    oscL.connect(panL).connect(toneGain)
+    oscR.connect(panR).connect(toneGain)
+    oscL.start()
+    oscR.start()
+  }
+
+  // ── Public API ────────────────────────────────────────────────────────────
+  async function unlock() {
+    if (status.value !== 'idle') return
+    buildGraph()
+    if (!ctx) return
+    await ctx.resume()
+
+    // app.spec §8.2 — bypass silent switch where supported.
+    const nav = navigator as Navigator & { audioSession?: { type: string } }
+    if (nav.audioSession) nav.audioSession.type = 'playback'
+
+    status.value = 'unlocked'
+  }
+
+  function start() {
+    if (!ctx || !master || !toneGain || !atmosGain) return
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {})
+    makeOscillators()
+    ensurePlayback()
+
+    ramp(toneGain.gain, targetToneGain, RAMP.toneGain)
+    ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
+    ramp(master.gain, 1, RAMP.master)
+
+    status.value = 'playing'
+  }
+
+  function stop() {
+    if (!ctx) return
+    if (master) ramp(master.gain, 0, RAMP.toneGain)
+    setTimeout(() => {
+      if (!ctx) return
+      if (toneGain) toneGain.gain.cancelScheduledValues(ctx.currentTime)
+      if (atmosGain) atmosGain.gain.cancelScheduledValues(ctx.currentTime)
+      if (oscL) {
+        try {
+          oscL.stop()
+        } catch {
+          /* already stopped */
+        }
+      }
+      if (oscR) {
+        try {
+          oscR.stop()
+        } catch {
+          /* already stopped */
+        }
+      }
+      oscL = null
+      oscR = null
+      status.value = 'unlocked'
+    }, 1600)
+  }
+
+  function setBand(id: BandId) {
+    const band = getBand(id)
+    carrierHz = band.carrierHz
+    beatHz = band.defaultBeatHz
+    if (ctx && oscL) {
+      ramp(oscL.frequency, carrierHz, RAMP.carrier)
+      if (oscR) ramp(oscR.frequency, carrierHz + beatHz, RAMP.beat)
+    }
+  }
+
+  function setBeat(hz: number) {
+    beatHz = hz
+    if (ctx && oscR) ramp(oscR.frequency, carrierHz + hz, RAMP.beat)
+  }
+
+  function setToneGain(g: number) {
+    targetToneGain = g
+    if (status.value === 'playing' && toneGain) ramp(toneGain.gain, g, RAMP.toneGain)
+  }
+
+  function setAtmosphereGain(g: number) {
+    targetAtmosGain = g
+    if (status.value === 'playing' && atmosGain) ramp(atmosGain.gain, g, RAMP.atmosphereGain)
+  }
+
+  function setAtmosphere(id: AtmosphereId) {
+    if (!ctx || id === currentAtmosphereId) return
+    // Fade out old, swap, fade in new (appspec §5.3 atmosphere crossfade).
+    if (atmosphere && atmosGain) ramp(atmosGain.gain, 0, RAMP.atmosphereGain)
+    const prev = atmosphere
+    setTimeout(() => {
+      if (prev) {
+        try {
+          prev.source.stop()
+        } catch {
+          /* already stopped */
+        }
+      }
+      atmosphere = createAtmosphere(ctx!, id)
+      atmosphere.gain.connect(atmosGain!)
+      if (status.value === 'playing' && atmosGain) {
+        ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
+      }
+    }, RAMP.atmosphereGain * 1000)
+    currentAtmosphereId = id
+  }
+
+  const atmosphereOptions = ATMOSPHERES.map((a) => a.id)
+
+  return {
+    status,
+    unlock,
+    start,
+    stop,
+    setBand,
+    setBeat,
+    setToneGain,
+    setAtmosphereGain,
+    setAtmosphere,
+    atmosphereOptions,
+  }
+}
+
+export function useAudioEngine() {
+  if (!singleton) singleton = createAudioEngine()
+  return singleton
+}
