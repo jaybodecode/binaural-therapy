@@ -333,12 +333,13 @@ cached in IndexedDB for offline use.
 
 ## 7. PWA & Hosting
 
-### 7.1 Repo shape — single repo, two branches
+### 7.1 Repo shape & hosting — single repo, custom domain
 
-- **One GitHub repo:** source code lives on `main`; build output is deployed to the `gh-pages` branch by GitHub Actions.
-- Source code on `main` stays **private** if desired; `gh-pages` is a build artifact. Setting a CNAME on `gh-pages` prevents GH from also exposing a public `<user>.github.io/<repo>` URL.
-- A `CNAME` file (1 line, e.g. `binauraltherapy.app`) committed to `gh-pages` provisions the custom domain + Let's Encrypt cert via GH Pages UI.
-- This shape matches what `vuejs/core`, `vitejs/vite`, and most OSS Vue projects use. Two repos would mean two remotes, two CI configs, and a CNAME living in the wrong place — not worth it.
+- **One GitHub repo** at `github.com/jaybodecode/binaural-therapy`, now **public**.
+- **Live URL:** `https://aura.sharefront.net` (custom domain) → GH Pages.
+- **Deploy model:** NO `gh-pages` branch. GitHub Actions builds `dist/`, uploads it via `actions/upload-pages-artifact@v3`, and publishes with `actions/deploy-pages@v4`. Pages must be in `build_type: "workflow"` mode (not `legacy`, which ignores the artifact and serves the `main` branch root).
+- **DNS:** `aura.sharefront.net  CNAME  jaybodecode.github.io` — the account apex. Never point a Pages CNAME at `<repo>.github.io`; that endpoint doesn't serve custom domains.
+- Two repos (private source + public hosting) were considered and rejected: two remotes, two CI configs, and a CNAME in the wrong place is not worth the isolation for this project.
 
 ### 7.2 Build & deploy
 
@@ -404,7 +405,15 @@ iOS Home Screen PWAs have a sticky web-app process that does **not** auto-refres
 - SSR adds a Node host (and $$ or free-tier-with-cold-start) for zero benefit.
 - Vue 3 SPA + Vite is the leanest, fastest path to GH Pages.
 
-### 7.7 GH Pages subpath gotcha — DO NOT FORGET
+### 7.7 GH Pages hosting & `base` — custom domain is LIVE
+
+**Current setup (2026-09-05):** the app is served at the repo ROOT via the custom domain **`https://aura.sharefront.net`** → `jaybodecode.github.io`. Because the site lives at `/` (root), Vite `base` defaults to `'/'`, and `manifest.start_url`/`scope`/icons are all root-relative. This is the **clean** configuration with no subpath quirks.
+
+- DNS: `aura.sharefront.net  CNAME  jaybodecode.github.io` (account apex — never the repo-name `.github.io`)
+- GH Pages: `build_type: "workflow"`, custom domain registered via repo Settings/API. The repo is public (required for Pages in workflow mode without an org account).
+- `vite.config.ts`: `const BASE = process.env.VITE_BASE_PATH || '/'` — root by default. Switch back to a subpath later only by deploying with `VITE_BASE_PATH=/repo-name/`.
+
+### 7.8 GH Pages subpath gotcha (historical — avoid unless moving back to a subpath)
 
 When the repo lives under a GH Pages subpath (e.g. `jaybodecode.github.io/binaural-therapy/`), Vite's default `base: '/'` produces an **empty page** that looks black on the iPhone. The browser fetches `/manifest.webmanifest` (404 against apex), `/assets/*.js` (404), and Vue Router fails to resolve any route. Symptoms:
 
@@ -412,9 +421,9 @@ When the repo lives under a GH Pages subpath (e.g. `jaybodecode.github.io/binaur
 - No console errors (silent failure)
 - Browser DevTools → Network shows 404s for all `/assets/*` and `/manifest.webmanifest`
 
-**Fix**: in `vite.config.ts`, set `base: '/binaural-therapy/'` (or whatever the repo subpath is). Vite then rewrites every emitted URL. When a custom CNAME is added later, set `base: '/'` again — also need to drop the subpath from `manifest.start_url`, `manifest.scope`, and the runtime cache patterns.
+**Fix (if ever back on a subpath):** set `base: '/repo-name/'`. Also the `manifest.start_url`, `scope`, and runtime-cache patterns must drop to the subpath. This whole class of bug disappears with a root-hosted custom domain — hence §7.7 is the preferred setup.
 
-Also: **GH Pages must be in `build_type: "workflow"` mode**, not `legacy`. Legacy mode serves the `main` branch root, ignoring the artifact uploaded by `actions/deploy-pages@v4`. Create the Pages site via `gh api POST /repos/{owner}/{repo}/pages -f build_type=workflow` to get this right from the start.
+Also: **GH Pages must be in `build_type: "workflow"` mode**, not `legacy`. Legacy mode serves the `main` branch root, ignoring the artifact uploaded by `actions/deploy-pages@v4`. Create the Pages site via `gh api POST /repos/{owner}/{repo}/pages -f build_type=workflow` to get this right from the start. `actions/configure-pages@v5` cannot auto-enable; use the API once.
 
 ---
 
@@ -842,7 +851,7 @@ These are explicitly **not** answered in v1 and need a design spike or external 
 8. **Health disclaimers in non-English locales.** §14.5 is English-only; need legal review for non-US release.
 9. **Apple Watch / CarPlay.** Stretch goals only.
 10. **Cross-app sleep data export.** Apple Health / Google Fit integration is **explicitly out of scope** for v1 (privacy).
-11. **Custom domain (CNAME).** User is bringing a CNAME for production hosting. Exact TBD; affects §7.1 (which already commits to CNAME-on-gh-pages shape regardless). Set domain in repo Settings → Pages after first deploy; `CNAME` file is auto-maintained by GitHub.
+11. ~~**Custom domain (CNAME).**~~ ✅ **Resolved 2026-09-05:** live at `https://aura.sharefront.net` (`CNAME jaybodecode.github.io`, GH Pages workflow mode, root base). See §7.7.
 12. **iOS re-install choreography on manifest-breaking changes.** §7.3 lists what cannot change without a re-install. We need a one-pager in `/about` explaining "if your app looks stale, swipe it away and re-tap the icon" — to be written in M5.
 
 ---
@@ -855,15 +864,17 @@ These are explicitly **not** answered in v1 and need a design spike or external 
 
 ## Appendix B — Decision log (append-only)
 
-| Date       | Decision                                                                                           | Rationale                                                                                              |
-| ---------- | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 2026-09-05 | Vue 3 SPA + Vite (not Nuxt)                                                                        | Avoid SSR hydration mismatches with Web Audio APIs.                                                    |
-| 2026-09-05 | Native Web Audio (not Tone.js)                                                                     | Cleanest signal path for iOS `<audio>` anchor.                                                         |
-| 2026-09-05 | GLM 5.2 primary coding model                                                                       | Best third-party-verified SWE-Bench Pro.                                                               |
-| 2026-09-05 | MiniMax M3 fallback                                                                                | Cost-effective for long sessions; 1M context.                                                          |
-| 2026-09-05 | Deep literature digest (Garcia-Argibay, Ingendoh, Papalambros, Adaikkan, Linkenkaer-Hansen, Oster) | Justifies defaults; honest caveat per claim.                                                           |
-| 2026-09-05 | Freesound CC0/CC-BY for ambient loops                                                              | Asset-free pipeline, attribution-compliant.                                                            |
-| 2026-09-05 | iOS `<audio>` MediaStream anchor + `audioSession.type = "playback"`                                | Required to survive screen lock on iOS.                                                                |
-| 2026-09-05 | Single repo (`main` source + `gh-pages` dist) with CNAME                                           | Canonical pattern; avoids two-repo overhead. GH Pages reads CNAME from `gh-pages` and provisions cert. |
-| 2026-09-05 | Workbox `registerType: 'prompt'` + explicit "Update ready" toast                                   | iOS Home Screen PWA process is sticky; autoUpdate gives stale-code UX. Explicit prompt = predictable.  |
-| 2026-09-05 | iOS re-install caveat documented (manifest changes don't auto-apply)                               | Forces discipline around icon/color/start_url changes; baked into §7.3 and §16.                        |
+| Date       | Decision                                                                                           | Rationale                                                                                                                        |
+| ---------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-09-05 | Vue 3 SPA + Vite (not Nuxt)                                                                        | Avoid SSR hydration mismatches with Web Audio APIs.                                                                              |
+| 2026-09-05 | Native Web Audio (not Tone.js)                                                                     | Cleanest signal path for iOS `<audio>` anchor.                                                                                   |
+| 2026-09-05 | GLM 5.2 primary coding model                                                                       | Best third-party-verified SWE-Bench Pro.                                                                                         |
+| 2026-09-05 | MiniMax M3 fallback                                                                                | Cost-effective for long sessions; 1M context.                                                                                    |
+| 2026-09-05 | Deep literature digest (Garcia-Argibay, Ingendoh, Papalambros, Adaikkan, Linkenkaer-Hansen, Oster) | Justifies defaults; honest caveat per claim.                                                                                     |
+| 2026-09-05 | Freesound CC0/CC-BY for ambient loops                                                              | Asset-free pipeline, attribution-compliant.                                                                                      |
+| 2026-09-05 | iOS `<audio>` MediaStream anchor + `audioSession.type = "playback"`                                | Required to survive screen lock on iOS.                                                                                          |
+| 2026-09-05 | Single repo with custom domain (no `gh-pages` branch)                                              | GitHub Actions uploads `dist/` artifact → `deploy-pages@v4` publishes; Pages set to `build_type: workflow`. Avoids branch-bloat. |
+| 2026-09-05 | Workbox `registerType: 'prompt'` + explicit "Update ready" toast                                   | iOS Home Screen PWA process is sticky; autoUpdate gives stale-code UX. Explicit prompt = predictable.                            |
+| 2026-09-05 | Root base `'/'` + custom domain `aura.sharefront.net`                                              | App lives at domain root, so no subpath asset-rewrite bugs; `VITE_BASE_PATH` kept as escape hatch.                               |
+| 2026-09-05 | Repo made public                                                                                   | GH Pages in workflow mode on a User account requires public repo; also simplest for the spike URL.                               |
+| 2026-09-05 | iOS re-install caveat documented (manifest changes don't auto-apply)                               | Forces discipline around icon/color/start_url changes; baked into §7.3 and §16.                                                  |
