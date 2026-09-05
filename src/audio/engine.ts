@@ -288,7 +288,9 @@ function createAudioEngine() {
 
   function setBeat(hz: number) {
     beatHz = hz
-    if (ctx && oscR) ramp(oscR.frequency, carrierHz + hz, RAMP.beat)
+    // Interactive slider → fast anti-pop ramp. The 60s RAMP.beat is reserved
+    // for Sleep Journey stage transitions (§5.3), scheduled separately.
+    if (ctx && oscR) ramp(oscR.frequency, carrierHz + hz, 0.05)
   }
 
   function setToneGain(g: number) {
@@ -344,9 +346,11 @@ function createAudioEngine() {
 
   /** Stereo-channel check (appspec §10 'stereo_check_utility'): a short
    * 440 Hz tone panned hard to one ear so the user can verify channel
-   * isolation on headphones. */
+   * isolation on headphones. Routes to ctx.destination (+ iOS anchor)
+   * directly so it is ALWAYS audible — independent of play state and the
+   * master/tone gains (which are 0 before a session starts). */
   function pingChannel(side: 'left' | 'right') {
-    if (!ctx || !toneGain) return
+    if (!ctx) return
     const osc = ctx.createOscillator()
     const g = ctx.createGain()
     const pan = ctx.createStereoPanner()
@@ -358,7 +362,8 @@ function createAudioEngine() {
     g.gain.linearRampToValueAtTime(0.25, now + 0.05)
     g.gain.setValueAtTime(0.25, now + 0.5)
     g.gain.linearRampToValueAtTime(0.0001, now + 0.6)
-    osc.connect(pan).connect(g).connect(toneGain)
+
+    osc.connect(pan).connect(g).connect(ctx.destination)
     osc.start(now)
     osc.stop(now + 0.65)
     osc.addEventListener('ended', () => {
