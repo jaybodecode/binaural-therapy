@@ -67,29 +67,25 @@ const currentAutoName = computed(
 
 function shareLink() {
   const url = session.buildShareUrl()
-  const title = `Aura — ${session.currentBand.name} preset`
-  const text = `Listen to this Aura preset: ${session.currentBand.name.toLowerCase()} with ${
-    session.noise
-  } noise. Tap to open:`
-  const canShare = typeof navigator !== 'undefined' && typeof navigator.share === 'function'
+  const appUrl = `${location.origin}${location.pathname}`
+  const presetName = session.currentBand.name.toLowerCase()
+  const subject = `Aura — ${presetName} preset`
+  const body =
+    `I use Aura — a free binaural-beat app for sleep, focus and calm.\n\n` +
+    `Try this ${presetName} preset:\n${url}\n\n` +
+    `Open Aura: ${appUrl}`
 
-  if (canShare) {
-    navigator
-      .share({ title, text, url })
-      .then(() => console.log('shared'))
-      .catch(() => {})
-  } else {
-    // Fallback: copy to clipboard + open mailto with prefilled body.
-    navigator.clipboard
-      .writeText(url)
-      .then(() => {
-        const mailto = `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(
-          `${text}\n${url}`,
-        )}`
-        window.open(mailto, '_self')
-      })
-      .catch(() => {})
+  // On iOS/Android the native share sheet is best (lets the friend pick Mail,
+  // Messages, AirDrop, copy…). It resolves even when the user cancels.
+  if (typeof navigator !== 'undefined' && typeof navigator.share === 'function') {
+    navigator.share({ title: subject, text: body, url }).catch(() => {})
+    return
   }
+
+  // Desktop: open the native email client with a prefilled draft. No clipboard
+  // dependency — this always works.
+  const mailto = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  window.open(mailto, '_self')
 }
 
 const beatMax = computed(() => session.currentBand.beatRange[1])
