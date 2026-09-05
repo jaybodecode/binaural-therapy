@@ -162,3 +162,28 @@ export function destroyAtmosphere(engine: AtmosphereEngine): void {
   engine.gain.disconnect()
   engine.lfoGain?.disconnect()
 }
+
+/**
+ * Build an atmosphere from a decoded AudioBuffer (a sourced loop), in the same
+ * AtmosphereEngine shape so the engine can treat it identically to synth.
+ * A loop buffer may already carry its own filter/character; we still pass it
+ * through a gentle low-pass + gain bus for level control.
+ */
+export function createLoopAtmosphere(ctx: AudioContext, buffer: AudioBuffer): AtmosphereEngine {
+  const source = ctx.createBufferSource()
+  source.buffer = buffer
+  source.loop = true
+
+  const filter = ctx.createBiquadFilter()
+  filter.type = 'lowpass'
+  filter.frequency.value = 6000
+  filter.Q.value = 0.3
+
+  const gain = ctx.createGain()
+  gain.gain.value = 1
+
+  source.connect(filter).connect(gain)
+  source.start()
+
+  return { source, filter, gain }
+}

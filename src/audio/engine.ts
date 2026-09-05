@@ -1,7 +1,14 @@
 import { ref } from 'vue'
 import type { AtmosphereId, BandId } from '@/data/bands'
 import { ATMOSPHERES, getBand } from '@/data/bands'
-import { createAtmosphere, destroyAtmosphere, type AtmosphereEngine } from './noise'
+import {
+  createAtmosphere,
+  createLoopAtmosphere,
+  destroyAtmosphere,
+  type AtmosphereEngine,
+} from './noise'
+import { resolveLoopBuffer } from './loopCache'
+import { LOOP_REGISTRY } from './loops'
 
 /**
  * Ramp durations per appspec §5.3.
@@ -40,6 +47,8 @@ function createAudioEngine() {
   let anchor: HTMLAudioElement | null = null
   let atmosphere: AtmosphereEngine | null = null
   let currentAtmosphereId: AtmosphereId | null = null
+  /** True when the active atmosphere is a sourced loop (vs synth). */
+  const loopActive = ref(false)
 
   let carrierHz = 240
   let beatHz = 10
@@ -130,6 +139,14 @@ function createAudioEngine() {
     makeOscillators()
     ensurePlayback()
 
+    // If no atmosphere has been built yet (initial start), build the synth
+    // one synchronously so playback is instant and offline-capable. Sourced
+    // loops are applied on later explicit atmosphere switches.
+    if (!atmosphere && currentAtmosphereId) {
+      atmosphere = createAtmosphere(ctx, currentAtmosphereId)
+      atmosphere.gain.connect(atmosGain)
+    }
+
     ramp(toneGain.gain, targetToneGain, RAMP.toneGain)
     ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
     ramp(master.gain, 1, RAMP.master)
@@ -194,12 +211,37 @@ function createAudioEngine() {
     // Fade out old, swap, fade in new (appspec §5.3 atmosphere crossfade).
     if (atmosphere && atmosGain) ramp(atmosGain.gain, 0, RAMP.atmosphereGain)
     const prev = atmosphere
-    setTimeout(() => {
+    const wasPlaying = status.value === 'playing'
+    setTimeout(async () => {
       if (prev) destroyAtmosphere(prev)
-      atmosphere = createAtmosphere(ctx!, id)
-      atmosphere.gain.connect(atmosGain!)
-      if (status.value === 'playing' && atmosGain) {
-        ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
+      atmosphere = null
+      loopActive.value = false
+
+      // Prefer a sourced loop when the registry has one and we can resolve
+      // a buffer (IndexedDB first, then network); fall back to synth.
+      const loop = LOOP_REGISTRY[id]
+      let built = false
+      if (loop && ctx) {
+        try {
+          const buffer = await resolveLoopBuffer(ctx, loop)
+          if (buffer) {
+            atmosphere = createLoopAtmosphere(ctx, buffer)
+            loopActive.value = true
+            built = true
+          }
+        } catch {
+          /* fall back to synth */
+        }
+      }
+      if (!built) {
+        atmosphere = createAtmosphere(ctx!, id)
+      }
+
+      if (atmosphere) {
+        atmosphere.gain.connect(atmosGain!)
+        if (wasPlaying && atmosGain) {
+          ramp(atmosGain.gain, targetAtmosGain, RAMP.atmosphereGain)
+        }
       }
     }, RAMP.atmosphereGain * 1000)
     currentAtmosphereId = id
@@ -235,6 +277,7 @@ function createAudioEngine() {
 
   return {
     status,
+    loopActive,
     unlock,
     start,
     stop,

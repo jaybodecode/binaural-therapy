@@ -22,7 +22,7 @@ export default defineConfig({
       injectRegister: 'auto',
       strategies: 'generateSW',
       workbox: {
-        globPatterns: ['**/*.{js,css,svg,png,ico,webp,woff,woff2}'],
+        globPatterns: ['**/*.{js,css,svg,png,ico,webp,woff,woff2,mp3,opus}', 'index.html'],
         // Exclude spike-audio.html from precache so we can iterate on it
         // without forcing a service-worker reinstall on every edit.
         navigateFallbackDenylist: [/^\/api/, /^\/spike-audio\.html$/],
